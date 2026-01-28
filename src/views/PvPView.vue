@@ -5,11 +5,14 @@
 </template>
 
 <style>
-@media (min-width: 1024px) {
-  .pvp {
-    min-height: 100vh;
-    display: flex;
-    align-items: center;
-  }
+h1 {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.solo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 </style>

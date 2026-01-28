@@ -6,6 +6,7 @@ import type { ColorAndPieceSymbol } from '../constants'
 export const useChessBoardStore = defineStore('chessboard', () => {
   const pgn = ref('')
   const chessJs = ref<Chess>(new Chess())
+  const highlightedSquares = ref<string[]>([])
 
   function setPgn(newPgn: string) {
     pgn.value = newPgn
@@ -20,5 +21,15 @@ export const useChessBoardStore = defineStore('chessboard', () => {
     return null
   }
 
-  return { pgn, setPgn, chessJs, getPieceForSquare }
+  function getSquareColor(square: Square) {
+    return chessJs.value.squareColor(square)
+  }
+
+  function onPieceClick(square: Square) {
+    highlightedSquares.value = chessJs.value.moves({ square })
+  }
+
+  console.log({ highlightedSquares})
+
+  return { pgn, setPgn, chessJs, getPieceForSquare, getSquareColor, onPieceClick, highlightedSquares}
 })

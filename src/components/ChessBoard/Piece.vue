@@ -38,20 +38,23 @@ const pieceImages: Record<ColorAndPieceSymbol, string> = {
   'wr': whiteRook
 } as const
 
-console.log('pieceImages', pieceImages)
-console.log('piece', piece)
-
 </script>
 
 <template>
   <div>
     <template v-if="piece">
-      <img :src="pieceImages[piece]" :alt="piece" />
+      <button @click="chessBoardStore.onPieceClick(props.squareId)">
+        <img :src="pieceImages[piece]" :alt="piece" />
+      </button>
     </template>
   </div>
 </template>
 
 <style lang="css" scoped>
+  button {
+    all: unset;
+    cursor: pointer;
+  }
   img {
     max-width: 100%;
     height: auto;
