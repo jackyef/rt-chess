@@ -1,6 +1,5 @@
 <script setup lang="ts">
-import ChessBoard from '@/components/ChessBoard/ChessBoard.vue';
-
+import ChessBoard from '@/components/ChessBoard/ChessBoard.vue'
 </script>
 
 <template>
@@ -18,6 +17,7 @@ h1 {
 
 .solo {
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
 }

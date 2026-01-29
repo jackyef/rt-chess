@@ -25,6 +25,9 @@ chessBoardStore.setPgn(props.initialPgn)
       </template>
     </template>
   </div>
+
+  <div>Game State: {{ chessBoardStore.board.gameState }}</div>
+  <button @click="chessBoardStore.setPgn('')">Reset board</button>
 </template>
 
 <style lang="css" scoped>

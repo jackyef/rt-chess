@@ -40,6 +40,15 @@ export const useChessBoardStore = defineStore('chessboard', () => {
     })
 
     return {
+      gameState: (() => {
+        if (chess.isCheckmate()) return 'checkmate' as const
+        if (chess.isStalemate()) return 'stalemate' as const
+        if (chess.isInsufficientMaterial()) return 'insufficient_material' as const
+        if (chess.isThreefoldRepetition()) return 'threefold_repetition' as const
+        if (chess.isCheck()) return 'check' as const
+        return 'normal' as const
+      })(),
+      isGameOver: chess.isGameOver(),
       moveNumber: chess.moveNumber(),
       turn: chess.turn(),
       pieceIdMap,
@@ -55,6 +64,8 @@ export const useChessBoardStore = defineStore('chessboard', () => {
 
   function setPgn(newPgn: string) {
     chess.loadPgn(newPgn)
+    pgn.value = chess.pgn()
+    currentClickedSquareWithPiece.value = null
   }
 
   function getPieceForSquare(square: Square) {
@@ -103,11 +114,14 @@ export const useChessBoardStore = defineStore('chessboard', () => {
   return {
     pgn,
     highlightedSquares,
+    board,
     setPgn,
     getPieceForSquare,
     getSquareColor,
     makeMove,
     handleSquareClick: (square: Square) => {
+      if (chess.isGameOver()) return
+
       if (currentClickedSquareWithPiece.value) {
         makeMove(square)
       } else {
