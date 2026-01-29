@@ -94,7 +94,12 @@ export const useChessBoardStore = defineStore('chessboard', () => {
     }
 
     try {
-      const move = chess.move({ from: currentClickedSquareWithPiece.value, to })
+      const move = chess.move({
+        from: currentClickedSquareWithPiece.value,
+        to,
+        // TODO: Handle promotions properly
+        // for now, always promote to queen
+        promotion: 'q' })
 
       // If valid move, clear highlighted squares and make updates.
       if (move) {
