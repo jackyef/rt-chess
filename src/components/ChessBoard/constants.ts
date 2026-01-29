@@ -6,8 +6,7 @@ export const COLUMNS = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'] as const
 export type Rows = (typeof ROWS)[number]
 export type Columns = (typeof COLUMNS)[number]
 
-export type PieceWithColor = `${Color}_${PieceSymbol}`
-export type PieceId = `${PieceWithColor}_${number}`
+export type PieceId = `${ColorAndPieceSymbol}_${number}`
 
 export type ColorAndPieceSymbol = `${Color}${PieceSymbol}`
 

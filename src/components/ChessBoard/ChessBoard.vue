@@ -4,19 +4,24 @@ const props = defineProps<{
 }>()
 
 import { useChessBoardStore } from './stores/chessboard'
-import { ROWS, COLUMNS } from './constants';
-import Square from './Square.vue';
+import { ROWS, COLUMNS } from './constants'
+import Square from './Square.vue'
 
 const chessBoardStore = useChessBoardStore()
 chessBoardStore.setPgn(props.initialPgn)
-
 </script>
 
 <template>
   <div class="chessboard">
-    <template v-for="(row, i) in ROWS">
-      <template v-for="(col, j) in COLUMNS">
-        <Square :square="`${col}${row}`" />
+    <template v-for="row in ROWS" :key="row">
+      <template v-for="col in COLUMNS" :key="`${col}${row}`">
+        <Square
+          :square="`${col}${row}`"
+          :piece="chessBoardStore.getPieceForSquare(`${col}${row}`)"
+          :onClick="() => chessBoardStore.handleSquareClick(`${col}${row}`)"
+          :isHighlighted="chessBoardStore.highlightedSquares.includes(`${col}${row}`)"
+          :color="chessBoardStore.getSquareColor(`${col}${row}`)"
+        />
       </template>
     </template>
   </div>
