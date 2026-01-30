@@ -3,7 +3,7 @@ import { defineStore } from 'pinia'
 import { Chess, type Move, SQUARES, type Square } from 'chess.js'
 import type { ColorAndPieceSymbol, PieceIdMap } from '../constants'
 
-export const useChessBoardStore = defineStore('chessboard', () => {
+export const useChessBoardPvpStore = defineStore('chessboardPvp', () => {
   const chess = new Chess()
   const pgn = ref<string>(chess.pgn())
   const currentClickedSquareWithPiece = ref<Square | null>(null)

@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:backend": "bun --watch backend/index.ts",
     "build": "run-p type-check \"build-only {@}\" --",
     "preview": "vite preview",
     "test:unit": "vitest",
@@ -23,6 +24,7 @@
   "devDependencies": {
     "@playwright/test": "^1.57.0",
     "@tsconfig/node24": "^24.0.4",
+    "@types/bun": "^1.3.8",
     "@types/jsdom": "^27.0.0",
     "@types/node": "^24.10.9",
     "@vitejs/plugin-vue": "^6.0.3",
