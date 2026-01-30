@@ -1,3 +1,4 @@
+import { updateIdentity } from "@/lib/clients/gameClient";
 import { defineStore } from "pinia";
 import { onMounted, ref } from "vue";
 
@@ -11,6 +12,15 @@ export const useIdentityStore = defineStore('identity', () => {
   const resetIdentity = () => {
     identity.value = '';
   };
+
+  const setIdentity = async (newIdentity: string): Promise<void> => {
+    try {
+      await updateIdentity(newIdentity);
+      await refreshIdentity()
+    } catch (error) {
+      console.error('Failed to update identity:', error);
+    }
+  }
 
   const refreshIdentity = async () => {
     try {
@@ -26,5 +36,5 @@ export const useIdentityStore = defineStore('identity', () => {
     }
   }
 
-  return { identity, refreshIdentity, resetIdentity }
+  return { identity, refreshIdentity, resetIdentity, setIdentity }
 });

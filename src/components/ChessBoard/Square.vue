@@ -54,9 +54,9 @@ button:hover {
 .square::before {
   content: attr(data-square);
   position: absolute;
-  top: 2px;
-  left: 2px;
-  font-size: 10px;
+  top: 4px;
+  left: 4px;
+  font-size: 0.8rem;
   color: #eaeaea;
   z-index: -1;
 }

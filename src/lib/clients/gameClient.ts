@@ -14,6 +14,45 @@ export const getGamePgn = async (gameId: string): Promise<string> => {
   return json.pgn as string
 }
 
+
+export const updateIdentity = async (identity: string): Promise<string> => {
+  const response = await fetch('/api/identity', {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ identity }),
+  })
+  if (!response.ok) {
+    throw new Error('Network response was not ok')
+  }
+
+  return identity
+}
+
+export const createMatch = async (): Promise<string> => {
+  const response = await fetch('/api/game/create', {
+    method: 'POST',
+  })
+  if (!response.ok) {
+    throw new Error('Network response was not ok')
+  }
+  const json = await response.json()
+
+  return json.id as string
+}
+
+export const joinMatch = async (gameId: string): Promise<string> => {
+  const response = await fetch(`/api/game/${gameId}/join`, {
+    method: 'POST',
+  })
+  if (!response.ok) {
+    throw new Error('Network response was not ok')
+  }
+  const json = await response.json()
+
+  return json.id as string
+}
 type Subscriber = (message: BackendGameWebSocketMessage) => void
 
 export const createWsGameClient = (gameId: string) => {
@@ -45,31 +84,38 @@ export const createWsGameClient = (gameId: string) => {
 }
 
 export const useWsGameClient = (gameId: ComputedRef<string>) => {
-   const wsClient = ref<ReturnType<typeof createWsGameClient> | null>(null)
+  const wsClient = ref<ReturnType<typeof createWsGameClient> | null>(null)
 
-    onMounted(() => {
-      if (gameId.value && gameId.value !== 'undefined') {
-        wsClient.value = createWsGameClient(gameId.value)
-      }
-    })
+  onMounted(() => {
+    if (gameId.value && gameId.value !== 'undefined') {
+      wsClient.value = createWsGameClient(gameId.value)
+    }
+  })
 
-    onUnmounted(() => {
-      if (wsClient.value) {
-        wsClient.value.close()
-        wsClient.value = null
-      }
-    })
+  onUnmounted(() => {
+    if (wsClient.value) {
+      wsClient.value.close()
+      wsClient.value = null
+    }
+  })
 
-    watch(gameId, (newGameId) => {
-      if (!newGameId || newGameId === 'undefined') return
-      if (wsClient.value) {
-        // clean up previous wsClient
-        wsClient.value.close()
-        wsClient.value = null
-      }
+  watch(gameId, (newGameId) => {
+    if (!newGameId || newGameId === 'undefined') return
+    if (wsClient.value) {
+      // clean up previous wsClient
+      wsClient.value.close()
+      wsClient.value = null
+    }
 
-      wsClient.value = createWsGameClient(newGameId)
-    })
+    wsClient.value = createWsGameClient(newGameId)
+  })
 
-    return wsClient
+  const reconnect = () => {
+    if (wsClient.value) {
+      wsClient.value.close()
+      wsClient.value = createWsGameClient(gameId.value)
+    }
   }
+
+  return { wsClient, reconnect }
+}

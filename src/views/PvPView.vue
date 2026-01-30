@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import IdentityForm from '@/components/IdentityForm.vue'
+import { createMatch, joinMatch } from '@/lib/clients/gameClient'
 import { useIdentityStore } from '@/stores/identity'
 import { storeToRefs } from 'pinia'
 import { useRouter } from 'vue-router'
@@ -7,44 +9,12 @@ const router = useRouter()
 const identityStore = useIdentityStore()
 const { identity } = storeToRefs(identityStore)
 
-const handleSetIdentity = (event: SubmitEvent) => {
-  const form = event.target as HTMLFormElement
-  const identityValue = form['identity'].value
-
-  ;(async () => {
-    try {
-      const response = await fetch('/api/identity', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ identity: identityValue }),
-      })
-      if (!response.ok) {
-        throw new Error('Network response was not ok')
-      }
-      identityStore.refreshIdentity()
-      console.log('Identity saved successfully')
-    } catch (error) {
-      console.error('Error saving identity:', error)
-    }
-  })()
-}
-
 const handleCreateMatch = () => {
   ;(async () => {
     try {
-      const response = await fetch('/api/game/create', {
-        method: 'POST',
-      })
-      if (!response.ok) {
-        throw new Error('Network response was not ok')
-      }
-      const json = await response.json()
+      const gameId = await createMatch()
 
-      console.log('Match created successfully with ID:', json.id)
-
-      router.push(`/pvp/game/${json.id}`)
+      router.push(`/pvp/game/${gameId}`)
     } catch (error) {
       console.error('Error creating match:', error)
     }
@@ -53,21 +23,14 @@ const handleCreateMatch = () => {
 
 const handleJoinMatch = (event: SubmitEvent) => {
   const form = event.target as HTMLFormElement
-  const gameIdValue = form['gameId'].value
+  const gameIdValue = form['gameId'].value as string
 
   ;(async () => {
     try {
-      const response = await fetch(`/api/game/${gameIdValue}/join`, {
-        method: 'POST',
-      })
-      if (!response.ok) {
-        throw new Error('Network response was not ok')
-      }
-      const json = await response.json()
+      const gameId = await joinMatch(gameIdValue)
+      console.log('Match joined successfully with ID:', gameId)
 
-      console.log('Match joined successfully with ID:', json.id)
-
-      router.push(`/pvp/game/${json.id}`)
+      router.push(`/pvp/game/${gameId}`)
     } catch (error) {
       console.error('Error joining match:', error)
     }
@@ -76,16 +39,12 @@ const handleJoinMatch = (event: SubmitEvent) => {
 </script>
 
 <template>
-  <div class="pvp">
-    <form v-if="!identity" @submit.prevent="handleSetIdentity">
-      <input type="text" placeholder="Set your name" name="identity" />
-      <button type="submit">Set identity</button>
-    </form>
-    <div v-else>
-      <h2>Hi, {{ identity }}! <button @click="identityStore.resetIdentity">Change name</button></h2>
+  <div class="container">
+    <IdentityForm />
 
+    <div v-if="identity">
       <div class="match">
-        <button @click="handleCreateMatch">Create a match</button>
+        <button @click="handleCreateMatch">Start a game</button>
         <div>or,</div>
         <form @submit.prevent="handleJoinMatch">
           <input type="text" placeholder="game ID" name="gameId" />
@@ -102,7 +61,7 @@ h1 {
   margin-bottom: 2rem;
 }
 
-.pvp {
+.container {
   display: flex;
   flex-direction: column;
   align-items: center;

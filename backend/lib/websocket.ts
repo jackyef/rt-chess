@@ -13,6 +13,8 @@ export type BackendGameWebSocketMessage = {
   payload: {
     san: string
   }
+} | {
+  type: 'player_joined'
 }
 
 export const parseBackendGameWebSocketMessage = (message: string): BackendGameWebSocketMessage => {
@@ -26,6 +28,8 @@ export type ClientGameWebSocketMessage = {
   payload: {
     san: string
   }
+} | {
+  type: 'join_game'
 }
 
 export const parseClientGameWebSocketMessage = (message: string): ClientGameWebSocketMessage => {

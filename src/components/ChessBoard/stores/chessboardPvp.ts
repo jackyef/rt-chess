@@ -1,10 +1,10 @@
-import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { defineStore, storeToRefs } from 'pinia'
 import { useRouter } from 'vue-router'
 import { Chess, type Move, SQUARES, type Square } from 'chess.js'
 import type { ColorAndPieceSymbol } from '../constants'
 import { useIdentityStore } from '@/stores/identity'
-import { getGamePgn, useWsGameClient } from '@/lib/clients/gameClient'
+import { getGamePgn, joinMatch, useWsGameClient } from '@/lib/clients/gameClient'
 
 export const useChessBoardPvpStore = defineStore('chessboardPvp', () => {
   const chess = new Chess()
@@ -12,8 +12,13 @@ export const useChessBoardPvpStore = defineStore('chessboardPvp', () => {
   const identityStore = useIdentityStore()
   const router = useRouter()
   const gameId = computed(() => router.currentRoute.value.params.id as string)
-  const wsClient = useWsGameClient(gameId)
+  const { wsClient, reconnect } = useWsGameClient(gameId)
   const { identity } = storeToRefs(identityStore)
+
+  async function getLatestGameState() {
+    const latestPgn = await getGamePgn(gameId.value)
+    setPgn(latestPgn)
+  }
 
   watch(wsClient, (newWsClient, oldWsClient) => {
     if (oldWsClient) {
@@ -29,12 +34,10 @@ export const useChessBoardPvpStore = defineStore('chessboardPvp', () => {
           } catch {
             // If an error happens, that means the move might be invalid.
             // We ask for fresh game state and start over.
-            ;(async () => {
-              const latestPgn = await getGamePgn(gameId.value)
-              setPgn(latestPgn)
-            })()
-
+            getLatestGameState()
           }
+        } else if (message.type === 'player_joined') {
+          getLatestGameState()
         }
       })
     }
@@ -72,7 +75,7 @@ export const useChessBoardPvpStore = defineStore('chessboardPvp', () => {
           return 'Black' as const
         }
 
-        return 'White' as const
+        return 'Spectator' as const
       })(),
       gameState: (() => {
         if (chess.isCheckmate()) return 'checkmate' as const
@@ -162,6 +165,19 @@ export const useChessBoardPvpStore = defineStore('chessboardPvp', () => {
     }
   }
 
+  async function joinGame() {
+    try {
+      await joinMatch(gameId.value)
+      wsClient.value?.sendMessage({
+        type: 'join_game'
+      })
+      await getLatestGameState()
+      reconnect()
+    } catch (error) {
+      console.error("Failed to join game:", error)
+    }
+  }
+
   return {
     pgn,
     highlightedSquares,
@@ -169,6 +185,7 @@ export const useChessBoardPvpStore = defineStore('chessboardPvp', () => {
     setPgn,
     getPieceForSquare,
     getSquareColor,
+    joinGame,
     handleSquareClick: (square: Square) => {
       if (chess.isGameOver()) return
 

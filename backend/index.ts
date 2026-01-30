@@ -121,24 +121,12 @@ const server = Bun.serve({
         })
       );
 
-      const identity = cookieMap["rt-chess-identity"];
-      if (!identity) {
-        return new Response("Unauthorized", { status: 401 });
-      }
+      const identity = cookieMap["rt-chess-identity"] || "Unknown spectator";
 
       const gameId = req.url.split("gameId=")[1];
       if (!gameId) {
         return new Response("Unauthorized", { status: 401 });
       }
-
-      const game = gamesStore.getGame(gameId);
-      const chessInstance = game?.chessInstance;
-      const headers = chessInstance?.getHeaders();
-
-      if (headers?.White !== identity && headers?.Black !== identity) {
-        return new Response("Unauthorized", { status: 401 });
-      }
-
 
       const success = server.upgrade(req, { data: { identity, gameId } });
       return success ? undefined : new Response("WebSocket upgrade error", { status: 400 });
@@ -172,6 +160,15 @@ const server = Bun.serve({
         }
 
         const chessInstance = game.chessInstance;
+        const turn = chessInstance.turn() === 'w' ? 'White' : 'Black';
+        const headers = chessInstance.getHeaders();
+        const currentPlayer = headers[turn];
+
+        if (currentPlayer !== ws.data.identity) {
+          // Not this player's turn
+          return;
+        }
+
         const moveResult = chessInstance.move(clientMessage.payload.san);
 
         if (moveResult) {
@@ -191,11 +188,23 @@ const server = Bun.serve({
           }
           ws.send(JSON.stringify(backendMessage));
         }
+      } else if (clientMessage.type === 'join_game') {
+        const game = gamesStore.getGame(ws.data.gameId);
+        if (!game) {
+          return;
+        }
+
+        const backendMessage: BackendGameWebSocketMessage = {
+          type: 'player_joined',
+        }
+
+        // This is just a notification so client can refetch game state
+        server.publish(`game-${ws.data.gameId}`, JSON.stringify(backendMessage));
       }
     },
     close(ws) {
       const msg = `${ws.data.identity} has disconnected from the game ${ws.data.gameId}`;
-        const message: BackendGameWebSocketMessage = {
+      const message: BackendGameWebSocketMessage = {
         type: 'info',
         payload: {
           message: msg,
