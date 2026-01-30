@@ -23,6 +23,10 @@ const server = Bun.serve({
     // Static routes
     "/api/status": new Response("OK"),
     "/api/identity": {
+      "GET": (req: Bun.BunRequest) => {
+        const identity = req.cookies.get("rt-chess-identity");
+        return Response.json({ identity: identity || '' });
+      },
       "PUT": async (req: Bun.BunRequest) => {
         const { identity } = await req.json();
 

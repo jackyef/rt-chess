@@ -21,6 +21,10 @@ header {
   line-height: 1.5;
 }
 
+.wrapper {
+  margin-bottom: 40px;
+}
+
 nav {
   width: 100%;
   font-size: 2rem;
