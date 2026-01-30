@@ -16,6 +16,7 @@
 import * as gamesStore from './stores/gameStores';
 import { gameToBoardState } from './lib/gameToBoardState';
 import { assertIdentity } from './lib/auth';
+import { parseClientGameWebSocketMessage, type BackendGameWebSocketMessage } from './lib/websocket';
 
 const server = Bun.serve({
   // `routes` requires Bun v1.2.3+
@@ -107,6 +108,102 @@ const server = Bun.serve({
 
     // Wildcard route for all routes that start with "/api/" and aren't otherwise matched
     "/api/*": Response.json({ message: "Not found" }, { status: 404 }),
+  },
+
+  fetch(req, server) {
+    const url = new URL(req.url);
+    if (url.pathname.startsWith("/api/ws/game")) {
+      const cookies = req.headers.get("cookie") || "";
+      const cookieMap = Object.fromEntries(
+        cookies.split("; ").map((c) => {
+          const [key, ...v] = c.split("=");
+          return [key, v.join("=")];
+        })
+      );
+
+      const identity = cookieMap["rt-chess-identity"];
+      if (!identity) {
+        return new Response("Unauthorized", { status: 401 });
+      }
+
+      const gameId = req.url.split("gameId=")[1];
+      if (!gameId) {
+        return new Response("Unauthorized", { status: 401 });
+      }
+
+      const game = gamesStore.getGame(gameId);
+      const chessInstance = game?.chessInstance;
+      const headers = chessInstance?.getHeaders();
+
+      if (headers?.White !== identity && headers?.Black !== identity) {
+        return new Response("Unauthorized", { status: 401 });
+      }
+
+
+      const success = server.upgrade(req, { data: { identity, gameId } });
+      return success ? undefined : new Response("WebSocket upgrade error", { status: 400 });
+    }
+
+    return Response.json({ message: "Not found" }, { status: 404 });
+  },
+
+  websocket: {
+    // TypeScript: specify the type of ws.data like this
+    data: {} as { identity: string, gameId: string },
+
+    open(ws) {
+      const msg = `${ws.data.identity} has connected to game ${ws.data.gameId}`;
+      const message: BackendGameWebSocketMessage = {
+        type: 'info',
+        payload: {
+          message: msg,
+        },
+      }
+      ws.subscribe(`game-${ws.data.gameId}`);
+      server.publish(`game-${ws.data.gameId}`, JSON.stringify(message));
+    },
+    message(ws, message) {
+      const clientMessage = parseClientGameWebSocketMessage(String(message));
+
+      if (clientMessage.type === 'make_move') {
+        const game = gamesStore.getGame(ws.data.gameId);
+        if (!game) {
+          return;
+        }
+
+        const chessInstance = game.chessInstance;
+        const moveResult = chessInstance.move(clientMessage.payload.san);
+
+        if (moveResult) {
+          const backendMessage: BackendGameWebSocketMessage = {
+            type: 'move_made',
+            payload: {
+              san: clientMessage.payload.san,
+            },
+          }
+          server.publish(`game-${ws.data.gameId}`, JSON.stringify(backendMessage));
+        } else {
+          const backendMessage: BackendGameWebSocketMessage = {
+            type: 'illegal_move_attempt',
+            payload: {
+              san: clientMessage.payload.san,
+            },
+          }
+          ws.send(JSON.stringify(backendMessage));
+        }
+      }
+    },
+    close(ws) {
+      const msg = `${ws.data.identity} has disconnected from the game ${ws.data.gameId}`;
+        const message: BackendGameWebSocketMessage = {
+        type: 'info',
+        payload: {
+          message: msg,
+        },
+      }
+      server.publish(`game-${ws.data.gameId}`, JSON.stringify(message));
+      ws.unsubscribe(`game-${ws.data.gameId}`);
+    }
   },
 
 });

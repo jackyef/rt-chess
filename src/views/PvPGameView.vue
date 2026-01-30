@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import ChessBoardPvp from '@/components/ChessBoard/ChessBoardPvp.vue'
 import { useChessBoardPvpStore } from '@/components/ChessBoard/stores/chessboardPvp'
+import { getGamePgn } from '@/lib/clients/gameClient'
 import { storeToRefs } from 'pinia'
 import { onMounted } from 'vue'
 import { useRouter } from 'vue-router'
@@ -13,14 +14,8 @@ const { board, pgn } = storeToRefs(chessboardPvpStore)
 onMounted(() => {
   ;(async () => {
     try {
-      const response = await fetch(`/api/game/${gameId}`, {
-        method: 'GET',
-      })
-      if (!response.ok) {
-        throw new Error('Network response was not ok')
-      }
-      const json = await response.json()
-      chessboardPvpStore.setPgn(json.pgn)
+      const pgn = await getGamePgn(gameId)
+      chessboardPvpStore.setPgn(pgn)
     } catch (error) {
       console.error('Error fetching game state:', error)
     }
@@ -31,7 +26,7 @@ onMounted(() => {
 <template>
   <h1>This is a pvp game chess page</h1>
   <div class="pvp">
-    <div v-if="!chessboardPvpStore.pgn">Loading game...</div>
+    <div v-if="!pgn">Loading game...</div>
     <ChessBoardPvp v-else :playingAs="board.playingAs" />
   </div>
 </template>

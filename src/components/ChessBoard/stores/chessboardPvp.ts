@@ -1,14 +1,45 @@
-import { computed, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { defineStore, storeToRefs } from 'pinia'
+import { useRouter } from 'vue-router'
 import { Chess, type Move, SQUARES, type Square } from 'chess.js'
 import type { ColorAndPieceSymbol } from '../constants'
 import { useIdentityStore } from '@/stores/identity'
+import { getGamePgn, useWsGameClient } from '@/lib/clients/gameClient'
 
 export const useChessBoardPvpStore = defineStore('chessboardPvp', () => {
   const chess = new Chess()
   const pgn = ref<string>('')
   const identityStore = useIdentityStore()
+  const router = useRouter()
+  const gameId = computed(() => router.currentRoute.value.params.id as string)
+  const wsClient = useWsGameClient(gameId)
   const { identity } = storeToRefs(identityStore)
+
+  watch(wsClient, (newWsClient, oldWsClient) => {
+    if (oldWsClient) {
+      oldWsClient.close()
+    }
+
+    if (newWsClient) {
+      newWsClient.subscribe((message) => {
+        if (message.type === 'move_made') {
+          try {
+            chess.move(message.payload.san)
+            setPgn(chess.pgn())
+          } catch {
+            // If an error happens, that means the move might be invalid.
+            // We ask for fresh game state and start over.
+            ;(async () => {
+              const latestPgn = await getGamePgn(gameId.value)
+              setPgn(latestPgn)
+            })()
+
+          }
+        }
+      })
+    }
+  })
+
   const currentClickedSquareWithPiece = ref<Square | null>(null)
   const highlightedSquares = computed(() => {
     if (currentClickedSquareWithPiece.value) {
@@ -98,6 +129,7 @@ export const useChessBoardPvpStore = defineStore('chessboardPvp', () => {
     }
 
     try {
+      // Make move optimistically.
       const move = chess.move({
         from: currentClickedSquareWithPiece.value,
         to,
@@ -108,6 +140,12 @@ export const useChessBoardPvpStore = defineStore('chessboardPvp', () => {
 
       // If valid move, clear highlighted squares and make updates.
       if (move) {
+        wsClient.value?.sendMessage({
+          type: 'make_move',
+          payload: {
+            san: move.san,
+          },
+        })
         pgn.value = chess.pgn()
         currentClickedSquareWithPiece.value = null
       }
@@ -117,6 +155,9 @@ export const useChessBoardPvpStore = defineStore('chessboardPvp', () => {
 
       if (piece && piece.color === chess.turn()) {
         setCurrentClickedSquareWithPiece(to)
+      } else {
+        // Invalid move, do nothing.
+        return
       }
     }
   }

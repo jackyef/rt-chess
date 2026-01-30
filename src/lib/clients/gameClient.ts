@@ -1,56 +1,75 @@
-export const createGameClient = () => {
-  // TODO: Derive from env
-  const serverBaseUrl = 'http://localhost:3000/api'
+import { onMounted, onUnmounted, ref, watch, type ComputedRef } from "vue"
+
+import type { BackendGameWebSocketMessage, ClientGameWebSocketMessage } from "../../../backend/lib/websocket"
+import { parseBackendGameWebSocketMessage } from "../../../backend/lib/websocket"
+
+export const getGamePgn = async (gameId: string): Promise<string> => {
+  const response = await fetch(`/api/game/${gameId}`, {
+    method: 'GET',
+  })
+  if (!response.ok) {
+    throw new Error('Network response was not ok')
+  }
+  const json = await response.json()
+  return json.pgn as string
+}
+
+type Subscriber = (message: BackendGameWebSocketMessage) => void
+
+export const createWsGameClient = (gameId: string) => {
+  const wsUrl = `ws://${window.location.host}/api/ws/game?gameId=${gameId}`
+  const socket = new WebSocket(wsUrl)
+
+  const subscribers = new Set<Subscriber>()
+
+  socket.onmessage = (event) => {
+    const message = parseBackendGameWebSocketMessage(event.data)
+    subscribers.forEach((subscriber) => {
+      subscriber(message)
+    })
+  }
 
   return {
-    setIdentity: async (identity: string) => {
-      const response = await fetch(`${serverBaseUrl}/identity`, {
-        method: 'PUT',
-        body: JSON.stringify({ identity }),
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      })
-
-      if (!response.ok) {
-        throw new Error('Failed to set identity')
-      }
+    subscribe: (subscriber: Subscriber) => {
+      subscribers.add(subscriber)
+      return () => subscribers.delete(subscriber)
     },
-    createGame: async () => {
-      const response = await fetch(`${serverBaseUrl}/game/create`, {
-        method: 'POST',
-      })
-
-      if (!response.ok) {
-        throw new Error('Failed to create game')
-      }
-
-      const data = await response.json()
-      return data as { id: string; pgn: string }
+    sendMessage: (message: ClientGameWebSocketMessage) => {
+      socket.send(JSON.stringify(message))
     },
-    joinGame: async () => {
-      const response = await fetch(`${serverBaseUrl}/game/join`, {
-        method: 'POST',
-      })
-
-      if (!response.ok) {
-        throw new Error('Failed to join game')
-      }
-
-      const data = await response.json()
-      return data as { id: string; pgn: string }
+    close: () => {
+      socket.close()
+      subscribers.clear()
     },
-    getGame: async (gameId: string) => {
-      const response = await fetch(`${serverBaseUrl}/game/${gameId}`, {
-        method: 'GET',
-      })
-
-      if (!response.ok) {
-        throw new Error('Failed to get game')
-      }
-
-      const data = await response.json()
-      return data as { id: string; pgn: string }
-    }
   }
 }
+
+export const useWsGameClient = (gameId: ComputedRef<string>) => {
+   const wsClient = ref<ReturnType<typeof createWsGameClient> | null>(null)
+
+    onMounted(() => {
+      if (gameId.value && gameId.value !== 'undefined') {
+        wsClient.value = createWsGameClient(gameId.value)
+      }
+    })
+
+    onUnmounted(() => {
+      if (wsClient.value) {
+        wsClient.value.close()
+        wsClient.value = null
+      }
+    })
+
+    watch(gameId, (newGameId) => {
+      if (!newGameId || newGameId === 'undefined') return
+      if (wsClient.value) {
+        // clean up previous wsClient
+        wsClient.value.close()
+        wsClient.value = null
+      }
+
+      wsClient.value = createWsGameClient(newGameId)
+    })
+
+    return wsClient
+  }

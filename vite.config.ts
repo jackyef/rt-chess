@@ -19,6 +19,11 @@ export default defineConfig({
   },
   server: {
     proxy: {
+      '/api/ws/game': {
+        target: 'ws://localhost:3000/api/ws/game',
+        ws: true,
+        rewriteWsOrigin: true,
+      },
       '/api': {
         target: 'http://localhost:3000', // Point to the Bun backend server
         changeOrigin: true,
