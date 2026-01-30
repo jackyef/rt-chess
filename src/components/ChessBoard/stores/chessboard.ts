@@ -73,10 +73,6 @@ export const useChessBoardStore = defineStore('chessboard', () => {
 
     if (!piece) return null
 
-    if (square === 'd5') {
-      console.log({ square, piece})
-    }
-
     return `${piece.color}${piece.type}` satisfies ColorAndPieceSymbol
   }
 

@@ -3,31 +3,40 @@ const props = defineProps<{
   initialPgn: string
 }>()
 
+import { SQUARES } from 'chess.js'
 import { useChessBoardStore } from './stores/chessboard'
-import { ROWS, COLUMNS } from './constants'
 import Square from './Square.vue'
+import { ref, computed } from 'vue'
 
 const chessBoardStore = useChessBoardStore()
 chessBoardStore.setPgn(props.initialPgn)
+
+const isBoardFlipped = ref(false)
+const toggleBoardFlip = () => {
+  isBoardFlipped.value = !isBoardFlipped.value
+}
+
+const squares = computed(() => {
+  return isBoardFlipped.value ? [...SQUARES].reverse() : SQUARES
+})
 </script>
 
 <template>
   <div class="chessboard">
-    <template v-for="row in ROWS" :key="row">
-      <template v-for="col in COLUMNS" :key="`${col}${row}`">
-        <Square
-          :square="`${col}${row}`"
-          :piece="chessBoardStore.getPieceForSquare(`${col}${row}`)"
-          :onClick="() => chessBoardStore.handleSquareClick(`${col}${row}`)"
-          :isHighlighted="chessBoardStore.highlightedSquares.includes(`${col}${row}`)"
-          :color="chessBoardStore.getSquareColor(`${col}${row}`)"
-        />
-      </template>
+    <template v-for="square in squares" :key="square">
+      <Square
+        :square="square"
+        :piece="chessBoardStore.getPieceForSquare(square)"
+        :onClick="() => chessBoardStore.handleSquareClick(square)"
+        :isHighlighted="chessBoardStore.highlightedSquares.includes(square)"
+        :color="chessBoardStore.getSquareColor(square)"
+      />
     </template>
   </div>
 
   <div>Game State: {{ chessBoardStore.board.gameState }}</div>
   <button @click="chessBoardStore.setPgn('')">Reset board</button>
+  <button @click="toggleBoardFlip">Flip board</button>
 </template>
 
 <style lang="css" scoped>
