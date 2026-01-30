@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { useIdentityStore } from '@/stores/identity'
 import { storeToRefs } from 'pinia'
+import { useRouter } from 'vue-router'
 
+const router = useRouter()
 const identityStore = useIdentityStore()
 const { identity } = storeToRefs(identityStore)
 
@@ -42,7 +44,7 @@ const handleCreateMatch = () => {
 
       console.log('Match created successfully with ID:', json.id)
 
-      // TODO: Redirect to the game page
+      router.push(`/pvp/game/${json.id}`)
     } catch (error) {
       console.error('Error creating match:', error)
     }
@@ -65,7 +67,7 @@ const handleJoinMatch = (event: SubmitEvent) => {
 
       console.log('Match joined successfully with ID:', json.id)
 
-      // TODO: Redirect to the game page
+      router.push(`/pvp/game/${json.id}`)
     } catch (error) {
       console.error('Error joining match:', error)
     }

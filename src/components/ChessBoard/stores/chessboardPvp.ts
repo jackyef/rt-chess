@@ -1,11 +1,14 @@
 import { computed, ref } from 'vue'
-import { defineStore } from 'pinia'
+import { defineStore, storeToRefs } from 'pinia'
 import { Chess, type Move, SQUARES, type Square } from 'chess.js'
-import type { ColorAndPieceSymbol, PieceIdMap } from '../constants'
+import type { ColorAndPieceSymbol } from '../constants'
+import { useIdentityStore } from '@/stores/identity'
 
 export const useChessBoardPvpStore = defineStore('chessboardPvp', () => {
   const chess = new Chess()
-  const pgn = ref<string>(chess.pgn())
+  const pgn = ref<string>('')
+  const identityStore = useIdentityStore()
+  const { identity } = storeToRefs(identityStore)
   const currentClickedSquareWithPiece = ref<Square | null>(null)
   const highlightedSquares = computed(() => {
     if (currentClickedSquareWithPiece.value) {
@@ -24,22 +27,22 @@ export const useChessBoardPvpStore = defineStore('chessboardPvp', () => {
     // eslint-disable-next-line
     pgn.value
 
-    // Construct initial pieceIdMap
-    const pieceIdMap: PieceIdMap = {}
-    const seenPieces: Partial<Record<ColorAndPieceSymbol, number>> = {}
-    SQUARES.forEach((square) => {
-      try {
-        const piece = chess.get(square)
-        if (piece) {
-          const piecePrefix = `${piece.color}${piece.type}` as ColorAndPieceSymbol
-          seenPieces[piecePrefix] = (seenPieces[piecePrefix] ?? 0) + 1
-
-          pieceIdMap[square] = `${piecePrefix}_${seenPieces[piecePrefix] as number}`
-        }
-      } catch {}
-    })
+    const chessHeaders = chess.getHeaders()
+    const whitePlayer = chessHeaders.White
+    const blackPlayer = chessHeaders.Black
 
     return {
+      whitePlayer,
+      blackPlayer,
+      playingAs: (() => {
+        if (identity.value === whitePlayer) {
+          return 'White' as const
+        } else if (identity.value === blackPlayer) {
+          return 'Black' as const
+        }
+
+        return 'White' as const
+      })(),
       gameState: (() => {
         if (chess.isCheckmate()) return 'checkmate' as const
         if (chess.isStalemate()) return 'stalemate' as const
@@ -51,7 +54,6 @@ export const useChessBoardPvpStore = defineStore('chessboardPvp', () => {
       isGameOver: chess.isGameOver(),
       moveNumber: chess.moveNumber(),
       turn: chess.turn(),
-      pieceIdMap,
       squares: SQUARES.reduce(
         (acc, square) => {
           acc[square] = chess.get(square)
@@ -81,6 +83,12 @@ export const useChessBoardPvpStore = defineStore('chessboardPvp', () => {
   }
 
   function setCurrentClickedSquareWithPiece(square: Square) {
+    const piece = board.value.squares[square]
+
+    if (!piece || piece.color !== board.value.turn || piece.color !== board.value.playingAs.charAt(0).toLowerCase()) {
+      return
+    }
+
     currentClickedSquareWithPiece.value = square
   }
 

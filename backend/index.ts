@@ -58,8 +58,7 @@ const server = Bun.serve({
           return identityAssertionError;
         }
 
-        // const gameId = Bun.randomUUIDv7();
-        const gameId = 'asdasd'; // static for easier testing
+        const gameId = Bun.randomUUIDv7();
         const game = gamesStore.createGame(gameId);
         const identity = req.cookies.get('rt-chess-identity')!;
         const side = Math.random() < 0.5 ? 'White' : 'Black';
