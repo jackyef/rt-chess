@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import HomeView from '../views/HomeView.vue'
+import { useIdentityStore } from '@/stores/identity'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -35,5 +36,15 @@ const router = createRouter({
     },
   ],
 })
+
+router.beforeEach(async () => {
+  const identityStore = useIdentityStore()
+
+  // Only fetch once
+  if (!identityStore.identity) {
+    await identityStore.refreshIdentity()
+  }
+})
+
 
 export default router

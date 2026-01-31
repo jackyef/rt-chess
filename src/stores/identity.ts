@@ -1,13 +1,9 @@
 import { updateIdentity } from "@/lib/clients/gameClient";
 import { defineStore } from "pinia";
-import { onMounted, ref } from "vue";
+import { ref } from "vue";
 
 export const useIdentityStore = defineStore('identity', () => {
   const identity = ref<string>('');
-
-  onMounted(() => {
-    refreshIdentity()
-  })
 
   const resetIdentity = () => {
     identity.value = '';

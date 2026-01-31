@@ -101,6 +101,11 @@ const server = Bun.serve({
 
         const side = existingWhitePlayer ? 'Black' : 'White';
         game.chessInstance.setHeader(side, identity);
+        const startingTime = Date.now();
+        game.startedAt = startingTime;
+        game.lastMoveAt = startingTime;
+        game.remainingTime.white = game.timeControl?.initial || null;
+        game.remainingTime.black = game.timeControl?.initial || null;
 
         return Response.json({ id: gameId, ...gameToBoardState(game) });
       },
@@ -170,15 +175,69 @@ const server = Bun.serve({
         }
 
         const moveResult = chessInstance.move(clientMessage.payload.san);
+        const currentTime = Date.now();
+        const timeTaken = game.lastMoveAt ? currentTime - game.lastMoveAt : 100; // default to 100ms if lastMoveAt is null
+
+        console.log('madeMove, before', { gameRemainingTime: game.remainingTime, timeTaken, turn });
 
         if (moveResult) {
+
+          if (turn === 'White' && game.remainingTime.white && game.timeControl) {
+            game.remainingTime.white = game.remainingTime.white - timeTaken + (game.timeControl.increment);
+          } else if (turn === 'Black' && game.remainingTime.black && game.timeControl) {
+            game.remainingTime.black = game.remainingTime.black - timeTaken + (game.timeControl.increment);
+          }
+
+          // Set timeout to mark game as over,
+          // if no moves are made within the remaining time
+          if (game.timeout) {
+            clearTimeout(game.timeout);
+            game.timeout = null;
+          }
+
+          if (turn === 'White' && game.remainingTime.black) {
+            game.timeout = setTimeout(() => {
+              game.remainingTime.black = 0;
+              game.endedAt = Date.now();
+
+              const backendMessage: BackendGameWebSocketMessage = {
+                type: 'game_ended',
+                payload: {
+                  reason: 'timeout',
+                  winner: 'white',
+                }
+              }
+              ws.publish(`game-${ws.data.gameId}`, JSON.stringify(backendMessage));
+
+            }, game.remainingTime.black);
+          } else if (turn === 'Black' && game.remainingTime.white) {
+            game.timeout = setTimeout(() => {
+              game.remainingTime.white = 0;
+              game.endedAt = Date.now();
+
+              const backendMessage: BackendGameWebSocketMessage = {
+                type: 'game_ended',
+                payload: {
+                  reason: 'timeout',
+                  winner: 'black',
+                }
+              }
+              ws.publish(`game-${ws.data.gameId}`, JSON.stringify(backendMessage));
+
+            }, game.remainingTime.white);
+          }
+
+          game.lastMoveAt = currentTime;
+
           const backendMessage: BackendGameWebSocketMessage = {
             type: 'move_made',
             payload: {
               san: clientMessage.payload.san,
+              lastMoveAt: game.lastMoveAt,
+              remainingTime: { white: game.remainingTime.white || 0, black: game.remainingTime.black || 0 },
             },
           }
-          ws.publish(`game-${ws.data.gameId}`, JSON.stringify(backendMessage));
+          server.publish(`game-${ws.data.gameId}`, JSON.stringify(backendMessage));
         } else {
           const backendMessage: BackendGameWebSocketMessage = {
             type: 'illegal_move_attempt',
@@ -198,8 +257,8 @@ const server = Bun.serve({
           type: 'player_joined',
         }
 
-        // This is just a notification so aall clients can refetch game state
-        ws.publish(`game-${ws.data.gameId}`, JSON.stringify(backendMessage));
+        // This is just a notification so all clients can refetch game state
+        server.publish(`game-${ws.data.gameId}`, JSON.stringify(backendMessage));
       }
     },
     close(ws) {

@@ -4,16 +4,18 @@
  */
 import type { BackendGameWebSocketMessage, ClientGameWebSocketMessage } from "../../../backend/lib/websocket"
 import { parseBackendGameWebSocketMessage } from "../../../backend/lib/websocket"
+import type { GameState } from "../../../backend/types"
 
-export const getGamePgn = async (gameId: string): Promise<string> => {
+export const getGameState = async (gameId: string): Promise<GameState> => {
   const response = await fetch(`/api/game/${gameId}`, {
     method: 'GET',
   })
   if (!response.ok) {
     throw new Error('Network response was not ok')
   }
+
   const json = await response.json()
-  return json.pgn as string
+  return json as GameState
 }
 
 

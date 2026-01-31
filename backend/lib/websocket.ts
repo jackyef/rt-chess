@@ -7,6 +7,11 @@ export type BackendGameWebSocketMessage = {
   type: 'move_made'
   payload: {
     san: string
+    lastMoveAt: number
+    remainingTime: {
+      white: number,
+      black: number,
+    }
   }
 } | {
   type: 'illegal_move_attempt'
@@ -15,6 +20,12 @@ export type BackendGameWebSocketMessage = {
   }
 } | {
   type: 'player_joined'
+} | {
+  type: 'game_ended'
+  payload: {
+    reason: 'timeout' | 'checkmate' | 'stalemate' | 'resignation' | 'draw_agreement',
+    winner: 'white' | 'black' | 'draw'
+  }
 }
 
 export const parseBackendGameWebSocketMessage = (message: string): BackendGameWebSocketMessage => {

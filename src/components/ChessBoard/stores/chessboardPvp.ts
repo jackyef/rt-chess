@@ -1,13 +1,27 @@
+/**
+ * Pinia store to manage the current state of a PvP chess game.
+ * It serves as a bridge between Vue components and the backend game client.
+ *
+ */
 import { computed, ref } from 'vue'
 import { defineStore, storeToRefs } from 'pinia'
 import { Chess, type Move, SQUARES, type Square } from 'chess.js'
 import type { ColorAndPieceSymbol } from '../constants'
 import { useIdentityStore } from '@/stores/identity'
-import { createWsGameClient, getGamePgn, joinMatch, type WsGameClient } from '@/lib/clients/gameClient'
+import {
+  createWsGameClient,
+  getGameState,
+  joinMatch,
+  type WsGameClient,
+} from '@/lib/clients/gameClient'
 
 export const useChessBoardPvpStore = defineStore('chessboardPvp', () => {
   const chess = new Chess()
   const pgn = ref<string>('')
+  const remainingTime = ref<{ white: number; black: number }>({ white: 0, black: 0 })
+  const hasStarted = ref<boolean>(false)
+  const hasEnded = ref<boolean>(false)
+  const lastMoveAt = ref<number>(0)
   const identityStore = useIdentityStore()
   const wsClient = ref<WsGameClient | null>(null)
   const connectedGameId = ref<string | null>(null)
@@ -15,30 +29,43 @@ export const useChessBoardPvpStore = defineStore('chessboardPvp', () => {
 
   async function getLatestGameState() {
     if (!connectedGameId.value) return
-    const latestPgn = await getGamePgn(connectedGameId.value)
+
+    const {
+      pgn: latestPgn,
+      remainingTime: latestRemainingTime,
+      startedAt,
+      endedAt,
+      lastMoveAt: latestLastMoveAt,
+    } = await getGameState(connectedGameId.value)
+
+    remainingTime.value = latestRemainingTime
+    hasStarted.value = Boolean(startedAt)
+    hasEnded.value = Boolean(endedAt)
+    lastMoveAt.value = latestLastMoveAt ?? 0
     setPgn(latestPgn)
   }
 
   function connectToWebSocket(gameId: string) {
-    if (gameId && connectedGameId.value !== gameId) {
-      disconnect()
-      wsClient.value = createWsGameClient(gameId)
-      connectedGameId.value = gameId
-      wsClient.value.subscribe((message) => {
-        if (message.type === 'move_made') {
-          try {
-            chess.move(message.payload.san)
-            setPgn(chess.pgn())
-          } catch {
-            // If an error happens, that means the move might be invalid.
-            // We ask for fresh game state and start over.
-            getLatestGameState()
-          }
-        } else if (message.type === 'player_joined') {
+    disconnect()
+    wsClient.value = createWsGameClient(gameId)
+    connectedGameId.value = gameId
+
+    wsClient.value.subscribe((message) => {
+      if (message.type === 'move_made') {
+        try {
+          chess.move(message.payload.san)
+          setPgn(chess.pgn())
+          remainingTime.value = message.payload.remainingTime
+          lastMoveAt.value = message.payload.lastMoveAt
+        } catch {
+          // If an error happens, that means the move might be invalid.
+          // We ask for fresh game state and start over.
           getLatestGameState()
         }
-      })
-    }
+      } else if (message.type === 'player_joined') {
+        getLatestGameState()
+      }
+    })
   }
 
   function disconnect() {
@@ -125,7 +152,11 @@ export const useChessBoardPvpStore = defineStore('chessboardPvp', () => {
   function setCurrentClickedSquareWithPiece(square: Square) {
     const piece = board.value.squares[square]
 
-    if (!piece || piece.color !== board.value.turn || piece.color !== board.value.playingAs.charAt(0).toLowerCase()) {
+    if (
+      !piece ||
+      piece.color !== board.value.turn ||
+      piece.color !== board.value.playingAs.charAt(0).toLowerCase()
+    ) {
       return
     }
 
@@ -180,7 +211,7 @@ export const useChessBoardPvpStore = defineStore('chessboardPvp', () => {
 
       await joinMatch(currentGameId)
       wsClient.value?.sendMessage({
-        type: 'join_game'
+        type: 'join_game',
       })
       await getLatestGameState()
 
@@ -188,7 +219,7 @@ export const useChessBoardPvpStore = defineStore('chessboardPvp', () => {
       disconnect()
       connectToWebSocket(currentGameId!)
     } catch (error) {
-      console.error("Failed to join game:", error)
+      console.error('Failed to join game:', error)
     }
   }
 
@@ -196,6 +227,11 @@ export const useChessBoardPvpStore = defineStore('chessboardPvp', () => {
     pgn,
     highlightedSquares,
     board,
+    hasStarted,
+    hasEnded,
+    lastMoveAt,
+    remainingTime,
+    initGameState: getLatestGameState,
     connectToWebSocket,
     setPgn,
     getPieceForSquare,

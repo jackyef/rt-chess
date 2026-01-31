@@ -1,9 +1,8 @@
 <script setup lang="ts">
 import ChessBoardPvp from '@/components/ChessBoard/ChessBoardPvp.vue'
 import { useChessBoardPvpStore } from '@/components/ChessBoard/stores/chessboardPvp'
-import { getGamePgn } from '@/lib/clients/gameClient'
 import { storeToRefs } from 'pinia'
-import { computed, onMounted } from 'vue'
+import { computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
 
 const router = useRouter()
@@ -11,16 +10,16 @@ const gameId = router.currentRoute.value.params.id as string
 const chessboardPvpStore = useChessBoardPvpStore()
 const { pgn } = storeToRefs(chessboardPvpStore)
 
-onMounted(() => {
-  ;(async () => {
-    try {
-      const pgn = await getGamePgn(gameId)
-      chessboardPvpStore.setPgn(pgn)
-    } catch (error) {
-      console.error('Error fetching game state:', error)
+watch(
+  () => router.currentRoute.value.params.id,
+  (id) => {
+    if (typeof id === 'string') {
+      chessboardPvpStore.connectToWebSocket(id)
+      chessboardPvpStore.initGameState()
     }
-  })()
-})
+  },
+  { immediate: true },
+)
 
 const shareUrl = computed(() => {
   return `${window.location.origin}/pvp/game/${gameId}`
