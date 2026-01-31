@@ -1,5 +1,6 @@
 import type { Chess } from 'chess.js'
 
+// The shape we are storing in memory.
 export type Game = {
   startedAt: number | null
   endedAt: number | null
@@ -32,6 +33,8 @@ export type GameEndedReason =
   | 'insufficient_material'
   | 'draw_agreement'
 
+// The shape we are exposing to the clients.
+// Needs to be JSON-serializable.
 export type GameState = Pick<
   Game,
   'winner' | 'startedAt' | 'endedAt' | 'lastMoveAt' | 'endedReason' | 'remainingTime'

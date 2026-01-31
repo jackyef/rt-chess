@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import IdentityForm from '@/components/IdentityForm.vue'
-import { createMatch, joinMatch } from '@/lib/clients/gameClient'
+import { createMatch, joinMatch } from '@/api/game.api'
 import { useIdentityStore } from '@/stores/identity'
 import { storeToRefs } from 'pinia'
 import { useRouter } from 'vue-router'
