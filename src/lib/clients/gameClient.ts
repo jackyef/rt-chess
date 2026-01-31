@@ -1,5 +1,7 @@
-import { onMounted, onUnmounted, ref, watch, type ComputedRef } from "vue"
-
+/**
+ * Library for interacting with the backend, either http or ws.
+ * Do not use Vue-specific API here, keep it vanilla.
+ */
 import type { BackendGameWebSocketMessage, ClientGameWebSocketMessage } from "../../../backend/lib/websocket"
 import { parseBackendGameWebSocketMessage } from "../../../backend/lib/websocket"
 
@@ -83,39 +85,4 @@ export const createWsGameClient = (gameId: string) => {
   }
 }
 
-export const useWsGameClient = (gameId: ComputedRef<string>) => {
-  const wsClient = ref<ReturnType<typeof createWsGameClient> | null>(null)
-
-  onMounted(() => {
-    if (gameId.value && gameId.value !== 'undefined') {
-      wsClient.value = createWsGameClient(gameId.value)
-    }
-  })
-
-  onUnmounted(() => {
-    if (wsClient.value) {
-      wsClient.value.close()
-      wsClient.value = null
-    }
-  })
-
-  watch(gameId, (newGameId) => {
-    if (!newGameId || newGameId === 'undefined') return
-    if (wsClient.value) {
-      // clean up previous wsClient
-      wsClient.value.close()
-      wsClient.value = null
-    }
-
-    wsClient.value = createWsGameClient(newGameId)
-  })
-
-  const reconnect = () => {
-    if (wsClient.value) {
-      wsClient.value.close()
-      wsClient.value = createWsGameClient(gameId.value)
-    }
-  }
-
-  return { wsClient, reconnect }
-}
+export type WsGameClient = ReturnType<typeof createWsGameClient>

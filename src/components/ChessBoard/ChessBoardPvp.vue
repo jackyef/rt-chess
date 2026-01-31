@@ -1,12 +1,26 @@
 <script lang="ts" setup>
 import { SQUARES } from 'chess.js'
 import Square from './Square.vue'
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useChessBoardPvpStore } from './stores/chessboardPvp'
 import IdentityForm from '../IdentityForm.vue'
+import { useIdentityStore } from '@/stores/identity'
+import { useRouter } from 'vue-router'
 
 const chessBoardStore = useChessBoardPvpStore()
-const joinState = ref<'none' | 'joining' | 'joined'>('none')
+const identityStore = useIdentityStore()
+const joinState = ref<'none' | 'joining'>('none')
+const router = useRouter()
+
+watch(
+  () => router.currentRoute.value.params.id,
+  (id) => {
+    if (typeof id === 'string') {
+      chessBoardStore.connectToWebSocket(id)
+    }
+  },
+  { immediate: true },
+)
 
 const isBoardFlipped = ref(chessBoardStore.board.playingAs === 'Black' ? true : false)
 const toggleBoardFlip = () => {
@@ -50,11 +64,19 @@ const canJoinGame = computed(() => {
     (chessBoardStore.board.whitePlayer === '?' || chessBoardStore.board.blackPlayer === '?')
   )
 })
+
+const handleJoinGame = () => {
+  if (!identityStore.identity) {
+    joinState.value = 'joining'
+  } else {
+    chessBoardStore.joinGame()
+  }
+}
 </script>
 
 <template>
   <div v-if="canJoinGame" class="joinGameContainer">
-    <button v-if="joinState === 'none'" @click="joinState = 'joining'">Join game</button>
+    <button v-if="joinState === 'none'" @click="handleJoinGame">Join game</button>
     <IdentityForm v-if="joinState === 'joining'" :onSuccess="chessBoardStore.joinGame" />
   </div>
   <div className="container">

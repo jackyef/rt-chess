@@ -148,7 +148,7 @@ const server = Bun.serve({
         },
       }
       ws.subscribe(`game-${ws.data.gameId}`);
-      server.publish(`game-${ws.data.gameId}`, JSON.stringify(message));
+      ws.publish(`game-${ws.data.gameId}`, JSON.stringify(message));
     },
     message(ws, message) {
       const clientMessage = parseClientGameWebSocketMessage(String(message));
@@ -178,7 +178,7 @@ const server = Bun.serve({
               san: clientMessage.payload.san,
             },
           }
-          server.publish(`game-${ws.data.gameId}`, JSON.stringify(backendMessage));
+          ws.publish(`game-${ws.data.gameId}`, JSON.stringify(backendMessage));
         } else {
           const backendMessage: BackendGameWebSocketMessage = {
             type: 'illegal_move_attempt',
@@ -198,8 +198,8 @@ const server = Bun.serve({
           type: 'player_joined',
         }
 
-        // This is just a notification so client can refetch game state
-        server.publish(`game-${ws.data.gameId}`, JSON.stringify(backendMessage));
+        // This is just a notification so aall clients can refetch game state
+        ws.publish(`game-${ws.data.gameId}`, JSON.stringify(backendMessage));
       }
     },
     close(ws) {
@@ -210,7 +210,7 @@ const server = Bun.serve({
           message: msg,
         },
       }
-      server.publish(`game-${ws.data.gameId}`, JSON.stringify(message));
+      ws.publish(`game-${ws.data.gameId}`, JSON.stringify(message));
       ws.unsubscribe(`game-${ws.data.gameId}`);
     }
   },

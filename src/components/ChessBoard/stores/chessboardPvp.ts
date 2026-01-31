@@ -1,32 +1,30 @@
-import { computed, ref, watch } from 'vue'
+import { computed, ref } from 'vue'
 import { defineStore, storeToRefs } from 'pinia'
-import { useRouter } from 'vue-router'
 import { Chess, type Move, SQUARES, type Square } from 'chess.js'
 import type { ColorAndPieceSymbol } from '../constants'
 import { useIdentityStore } from '@/stores/identity'
-import { getGamePgn, joinMatch, useWsGameClient } from '@/lib/clients/gameClient'
+import { createWsGameClient, getGamePgn, joinMatch, type WsGameClient } from '@/lib/clients/gameClient'
 
 export const useChessBoardPvpStore = defineStore('chessboardPvp', () => {
   const chess = new Chess()
   const pgn = ref<string>('')
   const identityStore = useIdentityStore()
-  const router = useRouter()
-  const gameId = computed(() => router.currentRoute.value.params.id as string)
-  const { wsClient, reconnect } = useWsGameClient(gameId)
+  const wsClient = ref<WsGameClient | null>(null)
+  const connectedGameId = ref<string | null>(null)
   const { identity } = storeToRefs(identityStore)
 
   async function getLatestGameState() {
-    const latestPgn = await getGamePgn(gameId.value)
+    if (!connectedGameId.value) return
+    const latestPgn = await getGamePgn(connectedGameId.value)
     setPgn(latestPgn)
   }
 
-  watch(wsClient, (newWsClient, oldWsClient) => {
-    if (oldWsClient) {
-      oldWsClient.close()
-    }
-
-    if (newWsClient) {
-      newWsClient.subscribe((message) => {
+  function connectToWebSocket(gameId: string) {
+    if (gameId && connectedGameId.value !== gameId) {
+      disconnect()
+      wsClient.value = createWsGameClient(gameId)
+      connectedGameId.value = gameId
+      wsClient.value.subscribe((message) => {
         if (message.type === 'move_made') {
           try {
             chess.move(message.payload.san)
@@ -41,7 +39,15 @@ export const useChessBoardPvpStore = defineStore('chessboardPvp', () => {
         }
       })
     }
-  })
+  }
+
+  function disconnect() {
+    if (wsClient.value) {
+      wsClient.value.close()
+      wsClient.value = null
+      connectedGameId.value = null
+    }
+  }
 
   const currentClickedSquareWithPiece = ref<Square | null>(null)
   const highlightedSquares = computed(() => {
@@ -167,12 +173,20 @@ export const useChessBoardPvpStore = defineStore('chessboardPvp', () => {
 
   async function joinGame() {
     try {
-      await joinMatch(gameId.value)
+      if (!connectedGameId.value) {
+        return
+      }
+      const currentGameId = connectedGameId.value as string
+
+      await joinMatch(currentGameId)
       wsClient.value?.sendMessage({
         type: 'join_game'
       })
       await getLatestGameState()
-      reconnect()
+
+      // Reconnect so that the websocket connection recognize the new identity in cookie.
+      disconnect()
+      connectToWebSocket(currentGameId!)
     } catch (error) {
       console.error("Failed to join game:", error)
     }
@@ -182,6 +196,7 @@ export const useChessBoardPvpStore = defineStore('chessboardPvp', () => {
     pgn,
     highlightedSquares,
     board,
+    connectToWebSocket,
     setPgn,
     getPieceForSquare,
     getSquareColor,

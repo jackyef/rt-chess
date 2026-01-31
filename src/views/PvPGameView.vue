@@ -59,7 +59,7 @@ const handleShareUrl = async () => {
   </div>
 </template>
 
-<style>
+<style scoped>
 .gameId {
   margin-bottom: 16px;
   text-align: center;

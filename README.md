@@ -1,5 +1,11 @@
 # rt-chess
 
+## Todos
+
+- [ ] 3+2 time control
+- [ ] Eval bar, stockfish wasm
+- [ ] More delightful feedbacks (sound effect, transition, etc)
+
 This template should help get you started developing with Vue 3 in Vite.
 
 ## Recommended IDE Setup
