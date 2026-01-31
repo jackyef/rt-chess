@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { Square } from 'chess.js'
-import Piece from './Piece.vue'
+import Piece from './ChessPiece.vue'
 import type { ColorAndPieceSymbol } from './constants'
 
 defineProps<{

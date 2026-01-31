@@ -15,6 +15,7 @@ export const useIdentityStore = defineStore('identity', () => {
       await refreshIdentity()
     } catch (error) {
       console.error('Failed to update identity:', error);
+      throw error;
     }
   }
 
