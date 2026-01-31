@@ -2,8 +2,7 @@
  * Library for interacting with the backend, either http or ws.
  * Do not use Vue-specific API here, keep it vanilla.
  */
-import type { BackendGameWebSocketMessage, ClientGameWebSocketMessage } from "../../../backend/lib/websocket"
-import { parseBackendGameWebSocketMessage } from "../../../backend/lib/websocket"
+import type { BackendGameWebSocketMessage, ClientGameWebSocketMessage } from "../../../backend/types"
 import type { GameState } from "../../../backend/types"
 import { NetworkError, ValidationError, GameError } from '@/types/errors'
 
@@ -78,7 +77,7 @@ export const createWsGameClient = (gameId: string) => {
   const subscribers = new Set<Subscriber>()
 
   socket.onmessage = (event) => {
-    const message = parseBackendGameWebSocketMessage(event.data)
+    const message = JSON.parse(event.data) as BackendGameWebSocketMessage
     subscribers.forEach((subscriber) => {
       subscriber(message)
     })

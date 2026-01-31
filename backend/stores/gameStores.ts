@@ -1,5 +1,5 @@
 import { Chess } from 'chess.js'
-import type { Game, GameEndedReason, GameOptions } from '../types'
+import type { Game, GameEndedReason, GameOptions } from '../types/game.types'
 
 /**
  * Keep track of all ongoing games in memory.
