@@ -195,36 +195,66 @@ const server = Bun.serve({
             game.timeout = null;
           }
 
-          if (turn === 'White' && game.remainingTime.black) {
-            game.timeout = setTimeout(() => {
-              game.remainingTime.black = 0;
-              game.endedAt = Date.now();
+          const isGameOver = chessInstance.isGameOver();
 
-              const backendMessage: BackendGameWebSocketMessage = {
-                type: 'game_ended',
-                payload: {
-                  reason: 'timeout',
-                  winner: 'white',
-                }
+          if (isGameOver) {
+            const reason = (() => {
+              // TODO: Handle draw offer and resignation
+              if (chessInstance.isCheckmate()) {
+                return 'checkmate';
+              } else if (chessInstance.isStalemate()) {
+                return 'stalemate';
+              } else if (chessInstance.isThreefoldRepetition()) {
+                return 'threefold_repetition';
+              } else if (chessInstance.isInsufficientMaterial()) {
+                return 'insufficient_material';
               }
-              ws.publish(`game-${ws.data.gameId}`, JSON.stringify(backendMessage));
 
-            }, game.remainingTime.black);
-          } else if (turn === 'Black' && game.remainingTime.white) {
-            game.timeout = setTimeout(() => {
-              game.remainingTime.white = 0;
-              game.endedAt = Date.now();
-
-              const backendMessage: BackendGameWebSocketMessage = {
-                type: 'game_ended',
-                payload: {
-                  reason: 'timeout',
-                  winner: 'black',
-                }
+              // Unhandled case, shouldn't happen tho.
+              return 'draw_agreement';
+            })()
+            const backendMessage: BackendGameWebSocketMessage = {
+              type: 'game_ended',
+              payload: {
+                reason,
+                winner: reason === 'checkmate' ? (turn === 'White' ? 'white' : 'black') : 'draw',
               }
-              ws.publish(`game-${ws.data.gameId}`, JSON.stringify(backendMessage));
+            }
+            server.publish(`game-${ws.data.gameId}`, JSON.stringify(backendMessage));
+          }
 
-            }, game.remainingTime.white);
+          if (!isGameOver) {
+            if (turn === 'White' && game.remainingTime.black) {
+              game.timeout = setTimeout(() => {
+                game.remainingTime.black = 0;
+                game.endedAt = Date.now();
+
+                const backendMessage: BackendGameWebSocketMessage = {
+                  type: 'game_ended',
+                  payload: {
+                    reason: 'timeout',
+                    winner: 'white',
+                  }
+                }
+                server.publish(`game-${ws.data.gameId}`, JSON.stringify(backendMessage));
+
+              }, game.remainingTime.black);
+            } else if (turn === 'Black' && game.remainingTime.white) {
+              game.timeout = setTimeout(() => {
+                game.remainingTime.white = 0;
+                game.endedAt = Date.now();
+
+                const backendMessage: BackendGameWebSocketMessage = {
+                  type: 'game_ended',
+                  payload: {
+                    reason: 'timeout',
+                    winner: 'black',
+                  }
+                }
+                ws.publish(`game-${ws.data.gameId}`, JSON.stringify(backendMessage));
+
+              }, game.remainingTime.white);
+            }
           }
 
           game.lastMoveAt = currentTime;

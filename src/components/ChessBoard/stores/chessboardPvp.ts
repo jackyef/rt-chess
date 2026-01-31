@@ -21,6 +21,8 @@ export const useChessBoardPvpStore = defineStore('chessboardPvp', () => {
   const remainingTime = ref<{ white: number; black: number }>({ white: 0, black: 0 })
   const hasStarted = ref<boolean>(false)
   const hasEnded = ref<boolean>(false)
+  const gameEndedReason = ref<string | null>(null)
+  const winner = ref<string | null>(null)
   const lastMoveAt = ref<number>(0)
   const identityStore = useIdentityStore()
   const wsClient = ref<WsGameClient | null>(null)
@@ -64,6 +66,10 @@ export const useChessBoardPvpStore = defineStore('chessboardPvp', () => {
         }
       } else if (message.type === 'player_joined') {
         getLatestGameState()
+      } else if (message.type === 'game_ended') {
+        hasEnded.value = true
+        gameEndedReason.value = message.payload.reason
+        winner.value = message.payload.winner
       }
     })
   }
@@ -111,12 +117,13 @@ export const useChessBoardPvpStore = defineStore('chessboardPvp', () => {
         return 'Spectator' as const
       })(),
       gameState: (() => {
-        if (chess.isCheckmate()) return 'checkmate' as const
-        if (chess.isStalemate()) return 'stalemate' as const
-        if (chess.isInsufficientMaterial()) return 'insufficient_material' as const
-        if (chess.isThreefoldRepetition()) return 'threefold_repetition' as const
-        if (chess.isCheck()) return 'check' as const
-        return 'normal' as const
+        if (gameEndedReason.value) {
+          return `ended, winner: ${winner.value}, reason: ${gameEndedReason.value}` as const
+        } else if (hasStarted.value) {
+          return 'ongoing' as const
+        } else {
+          return 'waiting_for_players' as const
+        }
       })(),
       isGameOver: chess.isGameOver(),
       moveNumber: chess.moveNumber(),

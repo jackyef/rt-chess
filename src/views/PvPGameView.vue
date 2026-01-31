@@ -48,7 +48,7 @@ const handleShareUrl = async () => {
 </script>
 
 <template>
-  <div className="gameId">
+  <div className="container">
     <input type="text" readonly="true" :value="shareUrl" />
     <button @click="handleShareUrl">Share URL</button>
   </div>
@@ -59,9 +59,10 @@ const handleShareUrl = async () => {
 </template>
 
 <style scoped>
-.gameId {
+.container {
   margin-bottom: 16px;
   text-align: center;
+  max-width: 100%;
 }
 
 input {
@@ -87,5 +88,6 @@ button {
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  max-width: 100%;
 }
 </style>

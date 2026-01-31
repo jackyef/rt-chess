@@ -7,8 +7,7 @@ import { RouterLink, RouterView } from 'vue-router'
     <div class="wrapper">
       <nav>
         <RouterLink to="/">Home</RouterLink>
-        <RouterLink to="/solo">Solo chess</RouterLink>
-        <RouterLink to="/pvp">PvP</RouterLink>
+        <RouterLink to="/pvp">⚡ PvP (3+2)</RouterLink>
       </nav>
     </div>
   </header>
@@ -23,6 +22,7 @@ header {
 
 .wrapper {
   margin-bottom: 40px;
+  max-width: 100%;
 }
 
 nav {

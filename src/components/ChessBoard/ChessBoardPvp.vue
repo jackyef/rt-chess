@@ -93,6 +93,7 @@ const handleJoinGame = () => {
         "
         :isPaused="
           !chessBoardStore.hasStarted ||
+          chessBoardStore.hasEnded ||
           chessBoardStore.board.turn.toLowerCase() !== topPlayer.color.charAt(0).toLowerCase()
         "
       />
@@ -122,6 +123,7 @@ const handleJoinGame = () => {
         "
         :isPaused="
           !chessBoardStore.hasStarted ||
+          chessBoardStore.hasEnded ||
           chessBoardStore.board.turn.toLowerCase() !== bottomPlayer.color.charAt(0).toLowerCase()
         "
       />
@@ -140,6 +142,7 @@ const handleJoinGame = () => {
 .container {
   display: flex;
   flex-direction: column;
+  max-width: 100%;
   --borderColor: #333;
   --borderRadius: 8px;
 }
@@ -178,5 +181,6 @@ const handleJoinGame = () => {
   max-width: 100%;
   aspect-ratio: 1 / 1;
   border: 1px solid var(--borderColor);
+  max-width: 100%;
 }
 </style>

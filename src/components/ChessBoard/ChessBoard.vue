@@ -47,5 +47,6 @@ const squares = computed(() => {
   width: 400px;
   aspect-ratio: 1 / 1;
   border: 2px solid #333;
+  max-width: 100%;
 }
 </style>

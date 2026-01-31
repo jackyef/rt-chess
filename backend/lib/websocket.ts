@@ -23,7 +23,7 @@ export type BackendGameWebSocketMessage = {
 } | {
   type: 'game_ended'
   payload: {
-    reason: 'timeout' | 'checkmate' | 'stalemate' | 'resignation' | 'draw_agreement',
+    reason: 'timeout' | 'checkmate' | 'stalemate' | 'resignation' | 'draw_agreement' | 'threefold_repetition' | 'insufficient_material'
     winner: 'white' | 'black' | 'draw'
   }
 }
