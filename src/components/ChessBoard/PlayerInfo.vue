@@ -18,11 +18,7 @@ defineProps<Props>()
       {{ name || 'Unknown' }} ({{ color }})
       <span class="playerWaitingInfo" v-if="name === '?'">Waiting for opponent...</span>
     </div>
-    <CountdownTimer
-      :lastMoveAt="lastMoveAt"
-      :remainingTime="remainingTime"
-      :isPaused="isPaused"
-    />
+    <CountdownTimer :lastMoveAt="lastMoveAt" :remainingTime="remainingTime" :isPaused="isPaused" />
   </div>
 </template>
 
@@ -38,6 +34,11 @@ defineProps<Props>()
 .playerInfo.white {
   background-color: #f0f0f0;
   color: #000;
+}
+
+.playerInfo.black {
+  background-color: #111;
+  color: #efefef;
 }
 
 .playerWaitingInfo {

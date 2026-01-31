@@ -1,4 +1,22 @@
-import type { Game, GameState } from "../types"
+import type { Game, GameEndedReason, GameState } from "../types"
+
+export const getGameEndedReason = (game: Game): GameEndedReason => {
+  const { chessInstance } = game
+  // TODO: Handle draw offer and resignation
+  if (chessInstance.isCheckmate()) {
+    return 'checkmate';
+  } else if (chessInstance.isStalemate()) {
+    return 'stalemate';
+  } else if (chessInstance.isThreefoldRepetition()) {
+    return 'threefold_repetition';
+  } else if (chessInstance.isInsufficientMaterial()) {
+    return 'insufficient_material';
+  }
+
+  // Unhandled case, shouldn't happen tho.
+  return 'draw_agreement';
+}
+
 
 export const gameToBoardState = (game: Game): GameState => {
   const { chessInstance: chess, remainingTime } = game
@@ -10,6 +28,8 @@ export const gameToBoardState = (game: Game): GameState => {
     remainingTime: { white: remainingTime.white || 0, black: remainingTime.black || 0 },
     startedAt: game.startedAt,
     endedAt: game.endedAt,
-    lastMoveAt: game.lastMoveAt
+    endedReason: game.endedAt ? game.endedReason : null,
+    lastMoveAt: game.lastMoveAt,
+    winner: game.winner
   }
 }

@@ -7,11 +7,13 @@ export type Game = {
   id: string
   chessInstance: Chess
   timeControl: GameOptions['timeControl']
+  winner: 'white' | 'black' | 'draw' | null
   remainingTime: {
-    white: number | null,
-    black: number | null,
-  },
+    white: number | null
+    black: number | null
+  }
   timeout: ReturnType<typeof setTimeout> | null
+  endedReason: GameEndedReason | null
 }
 
 export type GameOptions = {
@@ -21,13 +23,18 @@ export type GameOptions = {
   }
 }
 
-export type GameState = {
-  startedAt: number | null
-  endedAt: number | null
-  lastMoveAt: number | null
+// TODO: Handle resignation and draw offers?
+export type GameEndedReason =
+  | 'timeout'
+  | 'checkmate'
+  | 'stalemate'
+  | 'threefold_repetition'
+  | 'insufficient_material'
+  | 'draw_agreement'
+
+export type GameState = Pick<
+  Game,
+  'winner' | 'startedAt' | 'endedAt' | 'lastMoveAt' | 'endedReason' | 'remainingTime'
+> & {
   pgn: string
-  remainingTime: {
-    white: number,
-    black: number,
-  }
 }

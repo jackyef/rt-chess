@@ -1,5 +1,5 @@
 import { Chess } from 'chess.js'
-import type { Game, GameOptions } from '../types'
+import type { Game, GameEndedReason, GameOptions } from '../types'
 
 /**
  * Keep track of all ongoing games in memory.
@@ -17,6 +17,7 @@ export const createGame = (gameId: string, options?: GameOptions) => {
     startedAt: null,
     endedAt: null,
     lastMoveAt: null,
+    winner: null,
     chessInstance: new Chess(),
     timeControl: {
       initial: 180000, // default to 3 minutes
@@ -27,6 +28,7 @@ export const createGame = (gameId: string, options?: GameOptions) => {
       black: null,
     },
     timeout: null,
+    endedReason: null,
     ...options,
   }
   store.set(gameId, newGame)
@@ -39,4 +41,17 @@ export const getGame = (gameId: string) => {
 
 export const deleteGame = (gameId: string) => {
   return store.delete(gameId)
+}
+
+export const endGame = (
+  gameId: string,
+  reason: GameEndedReason,
+  winner: 'white' | 'black' | 'draw',
+) => {
+  const game = store.get(gameId)
+  if (game) {
+    game.endedAt = Date.now()
+    game.endedReason = reason
+    game.winner = winner
+  }
 }

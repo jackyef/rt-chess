@@ -7,9 +7,7 @@ defineProps<Props>()
 </script>
 
 <template>
-  <div class="game-status">
-    Game State: {{ gameState }}
-  </div>
+  <div class="game-status">Game status: {{ gameState }}</div>
 </template>
 
 <style lang="css" scoped>

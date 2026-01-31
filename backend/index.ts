@@ -14,7 +14,7 @@
  */
 
 import * as gamesStore from './stores/gameStores';
-import { gameToBoardState } from './lib/gameToBoardState';
+import { gameToBoardState, getGameEndedReason } from './lib/gameToBoardState';
 import { assertIdentity } from './lib/auth';
 import { parseClientGameWebSocketMessage, type BackendGameWebSocketMessage } from './lib/websocket';
 
@@ -178,10 +178,7 @@ const server = Bun.serve({
         const currentTime = Date.now();
         const timeTaken = game.lastMoveAt ? currentTime - game.lastMoveAt : 100; // default to 100ms if lastMoveAt is null
 
-        console.log('madeMove, before', { gameRemainingTime: game.remainingTime, timeTaken, turn });
-
         if (moveResult) {
-
           if (turn === 'White' && game.remainingTime.white && game.timeControl) {
             game.remainingTime.white = game.remainingTime.white - timeTaken + (game.timeControl.increment);
           } else if (turn === 'Black' && game.remainingTime.black && game.timeControl) {
@@ -198,21 +195,10 @@ const server = Bun.serve({
           const isGameOver = chessInstance.isGameOver();
 
           if (isGameOver) {
-            const reason = (() => {
-              // TODO: Handle draw offer and resignation
-              if (chessInstance.isCheckmate()) {
-                return 'checkmate';
-              } else if (chessInstance.isStalemate()) {
-                return 'stalemate';
-              } else if (chessInstance.isThreefoldRepetition()) {
-                return 'threefold_repetition';
-              } else if (chessInstance.isInsufficientMaterial()) {
-                return 'insufficient_material';
-              }
+            const reason = getGameEndedReason(game);
+            const winner = reason === 'checkmate' ? (turn === 'White' ? 'white' : 'black') : 'draw'
 
-              // Unhandled case, shouldn't happen tho.
-              return 'draw_agreement';
-            })()
+            gamesStore.endGame(game.id, reason, winner)
             const backendMessage: BackendGameWebSocketMessage = {
               type: 'game_ended',
               payload: {
@@ -227,7 +213,7 @@ const server = Bun.serve({
             if (turn === 'White' && game.remainingTime.black) {
               game.timeout = setTimeout(() => {
                 game.remainingTime.black = 0;
-                game.endedAt = Date.now();
+                gamesStore.endGame(game.id, 'timeout', 'white')
 
                 const backendMessage: BackendGameWebSocketMessage = {
                   type: 'game_ended',
@@ -242,7 +228,7 @@ const server = Bun.serve({
             } else if (turn === 'Black' && game.remainingTime.white) {
               game.timeout = setTimeout(() => {
                 game.remainingTime.white = 0;
-                game.endedAt = Date.now();
+                gamesStore.endGame(game.id, 'timeout', 'black')
 
                 const backendMessage: BackendGameWebSocketMessage = {
                   type: 'game_ended',
@@ -251,8 +237,7 @@ const server = Bun.serve({
                     winner: 'black',
                   }
                 }
-                ws.publish(`game-${ws.data.gameId}`, JSON.stringify(backendMessage));
-
+                server.publish(`game-${ws.data.gameId}`, JSON.stringify(backendMessage));
               }, game.remainingTime.white);
             }
           }
@@ -267,7 +252,9 @@ const server = Bun.serve({
               remainingTime: { white: game.remainingTime.white || 0, black: game.remainingTime.black || 0 },
             },
           }
-          server.publish(`game-${ws.data.gameId}`, JSON.stringify(backendMessage));
+
+          // Broadcast to all clients except sender
+          ws.publish(`game-${ws.data.gameId}`, JSON.stringify(backendMessage));
         } else {
           const backendMessage: BackendGameWebSocketMessage = {
             type: 'illegal_move_attempt',

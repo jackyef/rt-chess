@@ -34,7 +34,7 @@ const squares = computed(() => {
     </template>
   </div>
 
-  <div>Game State: {{ chessBoardStore.board.gameState }}</div>
+  <div>Game state: {{ chessBoardStore.board.gameState }}</div>
   <button @click="chessBoardStore.setPgn('')">Reset board</button>
   <button @click="toggleBoardFlip">Flip board</button>
 </template>

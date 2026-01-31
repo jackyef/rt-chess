@@ -38,12 +38,20 @@ export const useChessBoardPvpStore = defineStore('chessboardPvp', () => {
       startedAt,
       endedAt,
       lastMoveAt: latestLastMoveAt,
+      endedReason: latestGameEndedReason,
+      winner: latestWinner,
     } = await getGameState(connectedGameId.value)
 
-    remainingTime.value = latestRemainingTime
+    remainingTime.value = {
+      white: latestRemainingTime.white ?? 0,
+      black: latestRemainingTime.black ?? 0,
+    }
     hasStarted.value = Boolean(startedAt)
     hasEnded.value = Boolean(endedAt)
     lastMoveAt.value = latestLastMoveAt ?? 0
+    winner.value = latestWinner
+    gameEndedReason.value = endedAt ? latestGameEndedReason : null
+    lastMoveSquares.value = []
     setPgn(latestPgn)
   }
 
@@ -294,7 +302,7 @@ export const useChessBoardPvpStore = defineStore('chessboardPvp', () => {
     getSquareColor,
     joinGame,
     handleSquareClick: (square: Square) => {
-      if (chess.isGameOver()) return
+      if (!hasStarted.value || hasEnded.value) return
 
       if (currentClickedSquareWithPiece.value) {
         makeMove(square)
@@ -303,7 +311,7 @@ export const useChessBoardPvpStore = defineStore('chessboardPvp', () => {
       }
     },
     handleDrop: (fromSquare: Square, toSquare: Square) => {
-      if (chess.isGameOver()) return
+      if (!hasStarted.value || hasEnded.value) return
 
       // Clear any previous selection
       currentClickedSquareWithPiece.value = null
