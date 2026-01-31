@@ -5,13 +5,14 @@
 import type { BackendGameWebSocketMessage, ClientGameWebSocketMessage } from "../../../backend/lib/websocket"
 import { parseBackendGameWebSocketMessage } from "../../../backend/lib/websocket"
 import type { GameState } from "../../../backend/types"
+import { NetworkError, ValidationError, GameError } from '@/types/errors'
 
 export const getGameState = async (gameId: string): Promise<GameState> => {
   const response = await fetch(`/api/game/${gameId}`, {
     method: 'GET',
   })
   if (!response.ok) {
-    throw new Error('Network response was not ok')
+    throw new NetworkError(`Failed to get game state: ${response.statusText}`, response.status)
   }
 
   const json = await response.json()
@@ -20,6 +21,10 @@ export const getGameState = async (gameId: string): Promise<GameState> => {
 
 
 export const updateIdentity = async (identity: string): Promise<string> => {
+  if (!identity.trim()) {
+    throw new ValidationError('Identity cannot be empty', 'identity')
+  }
+
   const response = await fetch('/api/identity', {
     method: 'PUT',
     headers: {
@@ -28,7 +33,7 @@ export const updateIdentity = async (identity: string): Promise<string> => {
     body: JSON.stringify({ identity }),
   })
   if (!response.ok) {
-    throw new Error('Network response was not ok')
+    throw new NetworkError(`Failed to update identity: ${response.statusText}`, response.status)
   }
 
   return identity
@@ -39,7 +44,7 @@ export const createMatch = async (): Promise<string> => {
     method: 'POST',
   })
   if (!response.ok) {
-    throw new Error('Network response was not ok')
+    throw new NetworkError(`Failed to create match: ${response.statusText}`, response.status)
   }
   const json = await response.json()
 
@@ -47,11 +52,18 @@ export const createMatch = async (): Promise<string> => {
 }
 
 export const joinMatch = async (gameId: string): Promise<string> => {
+  if (!gameId.trim()) {
+    throw new ValidationError('Game ID cannot be empty', 'gameId')
+  }
+
   const response = await fetch(`/api/game/${gameId}/join`, {
     method: 'POST',
   })
   if (!response.ok) {
-    throw new Error('Network response was not ok')
+    if (response.status === 404) {
+      throw new GameError(`Game ${gameId} not found`, gameId)
+    }
+    throw new NetworkError(`Failed to join match: ${response.statusText}`, response.status)
   }
   const json = await response.json()
 

@@ -5,7 +5,7 @@ const props = defineProps<{
 
 import { SQUARES } from 'chess.js'
 import { useChessBoardStore } from './stores/chessboard'
-import Square from './Square.vue'
+import Square from './ChessSquare.vue'
 import { ref, computed } from 'vue'
 
 const chessBoardStore = useChessBoardStore()
