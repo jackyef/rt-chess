@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import type { Square } from 'chess.js'
 import blackBishop from './assets/black-bishop.svg'
 import whiteBishop from './assets/white-bishop.svg'
 import blackKing from './assets/black-king.svg'
