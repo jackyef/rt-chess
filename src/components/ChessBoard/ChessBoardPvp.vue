@@ -1,11 +1,12 @@
 <script lang="ts" setup>
 import { SQUARES } from 'chess.js'
-import Square from './ChessSquare.vue'
+import ChessSquare from './ChessSquare.vue'
 import { ref, computed, watch } from 'vue'
 import { useChessBoardPvpStore } from './stores/chessboardPvp'
 import PlayerInfo from './PlayerInfo.vue'
 import GameStatus from './GameStatus.vue'
 import JoinGame from './JoinGame.vue'
+import PromotionDialog from './PromotionDialog.vue'
 
 const chessBoardStore = useChessBoardPvpStore()
 
@@ -73,7 +74,9 @@ const canJoinGame = computed(() => {
       :name="topPlayer.name"
       :color="topPlayer.color"
       :lastMoveAt="chessBoardStore.lastMoveAt"
-      :remainingTime="chessBoardStore.remainingTime[topPlayer.color === 'Black' ? 'black' : 'white']"
+      :remainingTime="
+        chessBoardStore.remainingTime[topPlayer.color === 'Black' ? 'black' : 'white']
+      "
       :isPaused="
         !chessBoardStore.hasStarted ||
         chessBoardStore.hasEnded ||
@@ -83,11 +86,13 @@ const canJoinGame = computed(() => {
 
     <div class="chessboard">
       <template v-for="square in squares" :key="square">
-        <Square
+        <ChessSquare
           :square="square"
           :piece="chessBoardStore.getPieceForSquare(square)"
           :onClick="() => chessBoardStore.handleSquareClick(square)"
+          :onDrop="(fromSquare, toSquare) => chessBoardStore.handleDrop(fromSquare, toSquare)"
           :isHighlighted="chessBoardStore.highlightedSquares.includes(square)"
+          :isLastMove="chessBoardStore.lastMoveSquares.includes(square)"
           :color="chessBoardStore.getSquareColor(square)"
         />
       </template>
@@ -97,7 +102,9 @@ const canJoinGame = computed(() => {
       :name="bottomPlayer.name"
       :color="bottomPlayer.color"
       :lastMoveAt="chessBoardStore.lastMoveAt"
-      :remainingTime="chessBoardStore.remainingTime[bottomPlayer.color === 'Black' ? 'black' : 'white']"
+      :remainingTime="
+        chessBoardStore.remainingTime[bottomPlayer.color === 'Black' ? 'black' : 'white']
+      "
       :isPaused="
         !chessBoardStore.hasStarted ||
         chessBoardStore.hasEnded ||
@@ -108,6 +115,13 @@ const canJoinGame = computed(() => {
 
   <GameStatus :gameState="chessBoardStore.board.gameState" />
   <button @click="toggleBoardFlip">Flip board</button>
+
+  <PromotionDialog
+    :isOpen="!!chessBoardStore.pendingPromotion"
+    :color="chessBoardStore.board.turn"
+    :onSelect="chessBoardStore.completePromotion"
+    :onCancel="chessBoardStore.cancelPromotion"
+  />
 </template>
 
 <style lang="css" scoped>

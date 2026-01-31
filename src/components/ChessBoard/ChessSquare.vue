@@ -3,25 +3,60 @@ import type { Square } from 'chess.js'
 import Piece from './ChessPiece.vue'
 import type { ColorAndPieceSymbol } from './constants'
 
-defineProps<{
+const props = defineProps<{
   square: Square
   piece: ColorAndPieceSymbol | null
   color: 'light' | 'dark'
   onClick?: () => void
+  onDrop?: (fromSquare: Square, toSquare: Square) => void
   isHighlighted?: boolean
+  isLastMove?: boolean
 }>()
+
+const handleDragStart = (event: DragEvent) => {
+  if (props.piece && event.dataTransfer) {
+    event.dataTransfer.setData(
+      'text/plain',
+      JSON.stringify({ piece: props.piece, square: props.square }),
+    )
+    event.dataTransfer.effectAllowed = 'move'
+  }
+}
+
+const handleDrop = (event: DragEvent) => {
+  event.preventDefault()
+  if (props.onDrop && event.dataTransfer) {
+    try {
+      const data = JSON.parse(event.dataTransfer.getData('text/plain'))
+      props.onDrop(data.square, props.square)
+    } catch (error) {
+      console.error('Failed to parse drag data:', error)
+    }
+  }
+}
 </script>
 
 <template>
   <template v-if="onClick">
-    <button :class="`square ${color}`" :data-square="square" @click="onClick">
-      <Piece v-if="piece" :piece></Piece>
+    <button
+      :class="`square ${color} ${isLastMove ? 'last-move' : ''}`"
+      :data-square="square"
+      @click="onClick"
+      @dragover.prevent
+      @drop="handleDrop"
+    >
+      <Piece v-if="piece" :piece :draggable="true" @dragstart="handleDragStart" />
       <div v-if="isHighlighted" class="dot"></div>
     </button>
   </template>
   <template v-else>
-    <div :class="`square ${color}`" :data-square="square">
-      <Piece v-if="piece" :piece></Piece>
+    <div
+      :class="`square ${color} ${isLastMove ? 'last-move' : ''}`"
+      :data-square="square"
+      @dragover.prevent
+      @drop="handleDrop"
+    >
+      <Piece v-if="piece" :piece :draggable="true" @dragstart="handleDragStart" />
       <div v-if="isHighlighted" class="dot"></div>
     </div>
   </template>
@@ -83,5 +118,9 @@ button:hover {
 
 .dark.square {
   background-color: #b58863;
+}
+
+.last-move {
+  box-shadow: inset 0 0 0 3px #ff6b35 !important;
 }
 </style>

@@ -55,7 +55,10 @@ export const useChessBoardPvpStore = defineStore('chessboardPvp', () => {
     wsClient.value.subscribe((message) => {
       if (message.type === 'move_made') {
         try {
-          chess.move(message.payload.san)
+          const move = chess.move(message.payload.san)
+          if (move) {
+            lastMoveSquares.value = [move.from, move.to]
+          }
           setPgn(chess.pgn())
           remainingTime.value = message.payload.remainingTime
           lastMoveAt.value = message.payload.lastMoveAt
@@ -83,6 +86,8 @@ export const useChessBoardPvpStore = defineStore('chessboardPvp', () => {
   }
 
   const currentClickedSquareWithPiece = ref<Square | null>(null)
+  const pendingPromotion = ref<{ from: Square; to: Square } | null>(null)
+  const lastMoveSquares = ref<Square[]>([])
   const highlightedSquares = computed(() => {
     if (currentClickedSquareWithPiece.value) {
       const validMoves = chess.moves({
@@ -176,17 +181,26 @@ export const useChessBoardPvpStore = defineStore('chessboardPvp', () => {
     }
 
     try {
+      // Check if this is a pawn promotion
+      const piece = chess.get(currentClickedSquareWithPiece.value)
+      const isPromotion = piece?.type === 'p' &&
+        ((piece.color === 'w' && to[1] === '8') || (piece.color === 'b' && to[1] === '1'))
+
+      if (isPromotion) {
+        // Show promotion dialog instead of making the move
+        pendingPromotion.value = { from: currentClickedSquareWithPiece.value, to }
+        return
+      }
+
       // Make move optimistically.
       const move = chess.move({
         from: currentClickedSquareWithPiece.value,
         to,
-        // TODO: Handle promotions properly
-        // for now, always promote to queen
-        promotion: 'q',
       })
 
       // If valid move, clear highlighted squares and make updates.
       if (move) {
+        lastMoveSquares.value = [move.from, move.to]
         wsClient.value?.sendMessage({
           type: 'make_move',
           payload: {
@@ -207,6 +221,39 @@ export const useChessBoardPvpStore = defineStore('chessboardPvp', () => {
         return
       }
     }
+  }
+
+  function completePromotion(piece: 'q' | 'r' | 'b' | 'n') {
+    if (!pendingPromotion.value) return
+
+    try {
+      const move = chess.move({
+        from: pendingPromotion.value.from,
+        to: pendingPromotion.value.to,
+        promotion: piece,
+      })
+
+      if (move) {
+        lastMoveSquares.value = [pendingPromotion.value.from, pendingPromotion.value.to]
+        wsClient.value?.sendMessage({
+          type: 'make_move',
+          payload: {
+            san: move.san,
+          },
+        })
+        pgn.value = chess.pgn()
+        currentClickedSquareWithPiece.value = null
+        pendingPromotion.value = null
+      }
+    } catch (error) {
+      console.error('Promotion move failed:', error)
+      pendingPromotion.value = null
+    }
+  }
+
+  function cancelPromotion() {
+    pendingPromotion.value = null
+    currentClickedSquareWithPiece.value = null
   }
 
   async function joinGame() {
@@ -233,6 +280,8 @@ export const useChessBoardPvpStore = defineStore('chessboardPvp', () => {
   return {
     pgn,
     highlightedSquares,
+    lastMoveSquares,
+    pendingPromotion,
     board,
     hasStarted,
     hasEnded,
@@ -253,5 +302,46 @@ export const useChessBoardPvpStore = defineStore('chessboardPvp', () => {
         setCurrentClickedSquareWithPiece(square)
       }
     },
+    handleDrop: (fromSquare: Square, toSquare: Square) => {
+      if (chess.isGameOver()) return
+
+      // Clear any previous selection
+      currentClickedSquareWithPiece.value = null
+
+      // Check if this is a pawn promotion
+      const piece = chess.get(fromSquare)
+      const isPromotion = piece?.type === 'p' &&
+        ((piece.color === 'w' && toSquare[1] === '8') || (piece.color === 'b' && toSquare[1] === '1'))
+
+      if (isPromotion) {
+        // Show promotion dialog instead of making the move
+        pendingPromotion.value = { from: fromSquare, to: toSquare }
+        return
+      }
+
+      try {
+        // Make move directly
+        const move = chess.move({
+          from: fromSquare,
+          to: toSquare,
+        })
+
+        // If valid move, clear highlighted squares and make updates.
+        if (move) {
+          lastMoveSquares.value = [move.from, move.to]
+          wsClient.value?.sendMessage({
+            type: 'make_move',
+            payload: {
+              san: move.san,
+            },
+          })
+          pgn.value = chess.pgn()
+        }
+      } catch {
+        // Invalid move, do nothing
+      }
+    },
+    completePromotion,
+    cancelPromotion,
   }
 })

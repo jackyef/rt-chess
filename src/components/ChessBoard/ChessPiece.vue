@@ -14,6 +14,7 @@ import whiteRook from './assets/white-rook.svg'
 
 defineProps<{
   piece: ColorAndPieceSymbol
+  draggable?: boolean
 }>()
 
 import type { ColorAndPieceSymbol } from './constants'
@@ -35,7 +36,7 @@ const pieceImages: Record<ColorAndPieceSymbol, string> = {
 </script>
 
 <template>
-  <img v-if="piece" :src="pieceImages[piece]" :alt="piece" />
+  <img v-if="piece" :src="pieceImages[piece]" :alt="piece" :draggable="draggable" />
 </template>
 
 <style lang="css" scoped>
