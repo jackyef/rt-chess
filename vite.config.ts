@@ -6,6 +6,9 @@ import vueJsx from '@vitejs/plugin-vue-jsx'
 
 // https://vite.dev/config/
 export default defineConfig({
+  build: {
+    outDir: './dist/frontend',
+  },
   plugins: [
     vue(),
     vueJsx(),

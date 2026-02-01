@@ -1,4 +1,4 @@
-import type { Game, GameEndedReason, GameState } from "../types"
+import type { Game, GameEndedReason, GameState } from '../types/game.types'
 
 export const getGameEndedReason = (game: Game): GameEndedReason => {
   const { chessInstance } = game
@@ -16,7 +16,6 @@ export const getGameEndedReason = (game: Game): GameEndedReason => {
   // Unhandled case, shouldn't happen tho.
   return 'draw_agreement';
 }
-
 
 export const gameToBoardState = (game: Game): GameState => {
   const { chessInstance: chess, remainingTime } = game

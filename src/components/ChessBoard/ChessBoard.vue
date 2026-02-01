@@ -4,7 +4,7 @@ const props = defineProps<{
 }>()
 
 import { SQUARES } from 'chess.js'
-import { useChessBoardStore } from './stores/chessboard'
+import { useChessBoardStore } from '@/stores/game/chessboard'
 import Square from './ChessSquare.vue'
 import { ref, computed } from 'vue'
 

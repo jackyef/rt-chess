@@ -6,14 +6,10 @@
 import { computed, ref } from 'vue'
 import { defineStore, storeToRefs } from 'pinia'
 import { Chess, type Move, SQUARES, type Square } from 'chess.js'
-import type { ColorAndPieceSymbol } from '../constants'
+import type { ColorAndPieceSymbol } from '@/components/ChessBoard/constants'
 import { useIdentityStore } from '@/stores/identity'
-import {
-  createWsGameClient,
-  getGameState,
-  joinMatch,
-  type WsGameClient,
-} from '@/lib/clients/gameClient'
+import { createWebSocketGameClient, type WebSocketGameClient } from '@/api/websocket.api'
+import { getGameState, joinMatch } from '@/api/game.api'
 
 export const useChessBoardPvpStore = defineStore('chessboardPvp', () => {
   const chess = new Chess()
@@ -25,7 +21,7 @@ export const useChessBoardPvpStore = defineStore('chessboardPvp', () => {
   const winner = ref<string | null>(null)
   const lastMoveAt = ref<number>(0)
   const identityStore = useIdentityStore()
-  const wsClient = ref<WsGameClient | null>(null)
+  const wsClient = ref<WebSocketGameClient | null>(null)
   const connectedGameId = ref<string | null>(null)
   const { identity } = storeToRefs(identityStore)
 
@@ -57,7 +53,7 @@ export const useChessBoardPvpStore = defineStore('chessboardPvp', () => {
 
   function connectToWebSocket(gameId: string) {
     disconnect()
-    wsClient.value = createWsGameClient(gameId)
+    wsClient.value = createWebSocketGameClient(gameId)
     connectedGameId.value = gameId
 
     wsClient.value.subscribe((message) => {

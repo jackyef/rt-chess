@@ -2,7 +2,7 @@
 import { SQUARES } from 'chess.js'
 import ChessSquare from './ChessSquare.vue'
 import { ref, computed, watch } from 'vue'
-import { useChessBoardPvpStore } from './stores/chessboardPvp'
+import { useChessBoardPvpStore } from '@/stores/game/chessboardPvp'
 import PlayerInfo from './PlayerInfo.vue'
 import GameStatus from './GameStatus.vue'
 import JoinGame from './JoinGame.vue'

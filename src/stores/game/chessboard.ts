@@ -1,7 +1,7 @@
 import { computed, ref } from 'vue'
 import { defineStore } from 'pinia'
 import { Chess, type Move, SQUARES, type Square } from 'chess.js'
-import type { ColorAndPieceSymbol, PieceIdMap } from '../constants'
+import type { ColorAndPieceSymbol, PieceIdMap } from '@/components/ChessBoard/constants'
 
 export const useChessBoardStore = defineStore('chessboard', () => {
   const chess = new Chess()
@@ -36,7 +36,7 @@ export const useChessBoardStore = defineStore('chessboard', () => {
 
           pieceIdMap[square] = `${piecePrefix}_${seenPieces[piecePrefix] as number}`
         }
-      } catch {}
+      } catch { }
     })
 
     return {

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import ChessBoardPvp from '@/components/ChessBoard/ChessBoardPvp.vue'
-import { useChessBoardPvpStore } from '@/components/ChessBoard/stores/chessboardPvp'
+import { useChessBoardPvpStore } from '@/stores/game/chessboardPvp'
 import { storeToRefs } from 'pinia'
 import { computed, watch } from 'vue'
 import { useRouter } from 'vue-router'

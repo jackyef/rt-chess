@@ -13,102 +13,23 @@
  * 9. Finished games are removed from memory, but persisted into the filesystem.
  */
 
-import * as gamesStore from './stores/gameStores';
-import { gameToBoardState, getGameEndedReason } from './lib/gameToBoardState';
-import { assertIdentity } from './lib/auth';
-import { parseClientGameWebSocketMessage, type BackendGameWebSocketMessage } from './lib/websocket';
+import type { WebSocketData } from './types/websocket.types'
+import { identityRoutes } from './routes/identity.routes'
+import { getGameByIdHandler, createGameHandler, joinGameHandler } from './routes/game.routes'
+import { handleWebSocketOpen, handleWebSocketMessage, handleWebSocketClose } from './handlers/websocket.handler'
 
 const server = Bun.serve({
   // `routes` requires Bun v1.2.3+
   routes: {
     // Static routes
     "/api/status": new Response("OK"),
-    "/api/identity": {
-      "GET": (req: Bun.BunRequest) => {
-        const identity = req.cookies.get("rt-chess-identity");
-        return Response.json({ identity: identity || '' });
-      },
-      "PUT": async (req: Bun.BunRequest) => {
-        const { identity } = await req.json();
-
-        // Access request cookies
-        const cookies = req.cookies;
-        // Used to determine player id, which side they are playing, etc.
-        // On an actual app, this will be much more secure, like an actual email with proper auth.
-        cookies.set("rt-chess-identity", identity);
-
-        // Just echo back the identity
-        return Response.json({ identity });
-      }
-    },
-    "/api/game/:id": (req: Bun.BunRequest) => {
-      // return game state by id
-      const game = gamesStore.getGame(req.params.id!);
-
-      if (!game) {
-        return new Response("Game not found", { status: 404 });
-      }
-
-      return Response.json({ id: req.params.id, ...gameToBoardState(game) });
-    },
+    "/api/identity": identityRoutes,
+    "/api/game/:id": getGameByIdHandler,
     "/api/game/create": {
-      POST: async (req: Bun.BunRequest) => {
-        const identityAssertionError = assertIdentity(req);
-
-        if (identityAssertionError) {
-          return identityAssertionError;
-        }
-
-        const gameId = Bun.randomUUIDv7();
-        const game = gamesStore.createGame(gameId);
-        const identity = req.cookies.get('rt-chess-identity')!;
-        const side = Math.random() < 0.5 ? 'White' : 'Black';
-        game.chessInstance.setHeader(side, identity);
-
-        return Response.json({ id: gameId, ...gameToBoardState(game) });
-      }
+      POST: createGameHandler
     },
     "/api/game/:id/join": {
-      POST: async (req: Bun.BunRequest) => {
-        const identityAssertionError = assertIdentity(req);
-
-        if (identityAssertionError) {
-          return identityAssertionError;
-        }
-
-        const gameId = req.params.id;
-        const game = gamesStore.getGame(gameId!);
-
-        if (!game) {
-          return new Response("Game not found", { status: 404 });
-        }
-
-        const identity = req.cookies.get('rt-chess-identity')!;
-
-        const chessGameHeaders = game.chessInstance.getHeaders();
-        const existingWhitePlayer = chessGameHeaders['White'] === '?' ? null : chessGameHeaders['White'];
-        const existingBlackPlayer = chessGameHeaders['Black'] === '?' ? null : chessGameHeaders['Black'];
-
-        if (existingWhitePlayer && existingBlackPlayer) {
-          return new Response("Game is already full", { status: 400 });
-        }
-
-        const existingPlayer = existingWhitePlayer || existingBlackPlayer;
-
-        if (existingPlayer === identity) {
-          return new Response("Already joined", { status: 400 });
-        }
-
-        const side = existingWhitePlayer ? 'Black' : 'White';
-        game.chessInstance.setHeader(side, identity);
-        const startingTime = Date.now();
-        game.startedAt = startingTime;
-        game.lastMoveAt = startingTime;
-        game.remainingTime.white = game.timeControl?.initial || null;
-        game.remainingTime.black = game.timeControl?.initial || null;
-
-        return Response.json({ id: gameId, ...gameToBoardState(game) });
-      },
+      POST: joinGameHandler
     },
 
     // Wildcard route for all routes that start with "/api/" and aren't otherwise matched
@@ -137,160 +58,34 @@ const server = Bun.serve({
       return success ? undefined : new Response("WebSocket upgrade error", { status: 400 });
     }
 
-    return Response.json({ message: "Not found" }, { status: 404 });
+
+    /** These are only needed for production.
+     *  In development, we hit the vite dev server and api calls are proxied to bun.
+     *  In production, bun is our only server, serving both apis and frontend assets.
+     */
+    if (url.pathname.startsWith('/assets')) {
+      return new Response(Bun.file(`./dist/frontend${url.pathname}`));
+    }
+
+    // Fallback to the SPA entrypoint
+    return new Response(Bun.file('./dist/frontend/index.html'));
   },
 
   websocket: {
-    // TypeScript: specify the type of ws.data like this
-    data: {} as { identity: string, gameId: string },
+    data: {} as WebSocketData,
 
     open(ws) {
-      const msg = `${ws.data.identity} has connected to game ${ws.data.gameId}`;
-      const message: BackendGameWebSocketMessage = {
-        type: 'info',
-        payload: {
-          message: msg,
-        },
-      }
-      ws.subscribe(`game-${ws.data.gameId}`);
-      ws.publish(`game-${ws.data.gameId}`, JSON.stringify(message));
+      handleWebSocketOpen(ws);
     },
+
     message(ws, message) {
-      const clientMessage = parseClientGameWebSocketMessage(String(message));
-
-      if (clientMessage.type === 'make_move') {
-        const game = gamesStore.getGame(ws.data.gameId);
-        if (!game) {
-          return;
-        }
-
-        const chessInstance = game.chessInstance;
-        const turn = chessInstance.turn() === 'w' ? 'White' : 'Black';
-        const headers = chessInstance.getHeaders();
-        const currentPlayer = headers[turn];
-
-        if (currentPlayer !== ws.data.identity) {
-          // Not this player's turn
-          return;
-        }
-
-        const moveResult = chessInstance.move(clientMessage.payload.san);
-        const currentTime = Date.now();
-        const timeTaken = game.lastMoveAt ? currentTime - game.lastMoveAt : 100; // default to 100ms if lastMoveAt is null
-
-        if (moveResult) {
-          if (turn === 'White' && game.remainingTime.white && game.timeControl) {
-            game.remainingTime.white = game.remainingTime.white - timeTaken + (game.timeControl.increment);
-          } else if (turn === 'Black' && game.remainingTime.black && game.timeControl) {
-            game.remainingTime.black = game.remainingTime.black - timeTaken + (game.timeControl.increment);
-          }
-
-          // Set timeout to mark game as over,
-          // if no moves are made within the remaining time
-          if (game.timeout) {
-            clearTimeout(game.timeout);
-            game.timeout = null;
-          }
-
-          const isGameOver = chessInstance.isGameOver();
-
-          if (isGameOver) {
-            const reason = getGameEndedReason(game);
-            const winner = reason === 'checkmate' ? (turn === 'White' ? 'white' : 'black') : 'draw'
-
-            gamesStore.endGame(game.id, reason, winner)
-            const backendMessage: BackendGameWebSocketMessage = {
-              type: 'game_ended',
-              payload: {
-                reason,
-                winner: reason === 'checkmate' ? (turn === 'White' ? 'white' : 'black') : 'draw',
-              }
-            }
-            server.publish(`game-${ws.data.gameId}`, JSON.stringify(backendMessage));
-          }
-
-          if (!isGameOver) {
-            if (turn === 'White' && game.remainingTime.black) {
-              game.timeout = setTimeout(() => {
-                game.remainingTime.black = 0;
-                gamesStore.endGame(game.id, 'timeout', 'white')
-
-                const backendMessage: BackendGameWebSocketMessage = {
-                  type: 'game_ended',
-                  payload: {
-                    reason: 'timeout',
-                    winner: 'white',
-                  }
-                }
-                server.publish(`game-${ws.data.gameId}`, JSON.stringify(backendMessage));
-
-              }, game.remainingTime.black);
-            } else if (turn === 'Black' && game.remainingTime.white) {
-              game.timeout = setTimeout(() => {
-                game.remainingTime.white = 0;
-                gamesStore.endGame(game.id, 'timeout', 'black')
-
-                const backendMessage: BackendGameWebSocketMessage = {
-                  type: 'game_ended',
-                  payload: {
-                    reason: 'timeout',
-                    winner: 'black',
-                  }
-                }
-                server.publish(`game-${ws.data.gameId}`, JSON.stringify(backendMessage));
-              }, game.remainingTime.white);
-            }
-          }
-
-          game.lastMoveAt = currentTime;
-
-          const backendMessage: BackendGameWebSocketMessage = {
-            type: 'move_made',
-            payload: {
-              san: clientMessage.payload.san,
-              lastMoveAt: game.lastMoveAt,
-              remainingTime: { white: game.remainingTime.white || 0, black: game.remainingTime.black || 0 },
-            },
-          }
-
-          // Broadcast to all clients except sender
-          ws.publish(`game-${ws.data.gameId}`, JSON.stringify(backendMessage));
-        } else {
-          const backendMessage: BackendGameWebSocketMessage = {
-            type: 'illegal_move_attempt',
-            payload: {
-              san: clientMessage.payload.san,
-            },
-          }
-          ws.send(JSON.stringify(backendMessage));
-        }
-      } else if (clientMessage.type === 'join_game') {
-        const game = gamesStore.getGame(ws.data.gameId);
-        if (!game) {
-          return;
-        }
-
-        const backendMessage: BackendGameWebSocketMessage = {
-          type: 'player_joined',
-        }
-
-        // This is just a notification so all clients can refetch game state
-        server.publish(`game-${ws.data.gameId}`, JSON.stringify(backendMessage));
-      }
+      handleWebSocketMessage(ws, String(message), server);
     },
+
     close(ws) {
-      const msg = `${ws.data.identity} has disconnected from the game ${ws.data.gameId}`;
-      const message: BackendGameWebSocketMessage = {
-        type: 'info',
-        payload: {
-          message: msg,
-        },
-      }
-      ws.publish(`game-${ws.data.gameId}`, JSON.stringify(message));
-      ws.unsubscribe(`game-${ws.data.gameId}`);
+      handleWebSocketClose(ws);
     }
   },
-
 });
 
 console.log(`Server running at ${server.url}`);

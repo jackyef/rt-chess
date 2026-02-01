@@ -1,3 +1,5 @@
+import type { GameEndedReason } from './game.types'
+
 export type BackendGameWebSocketMessage = {
   type: 'info'
   payload: {
@@ -23,15 +25,9 @@ export type BackendGameWebSocketMessage = {
 } | {
   type: 'game_ended'
   payload: {
-    reason: 'timeout' | 'checkmate' | 'stalemate' | 'resignation' | 'draw_agreement' | 'threefold_repetition' | 'insufficient_material'
+    reason: GameEndedReason
     winner: 'white' | 'black' | 'draw'
   }
-}
-
-export const parseBackendGameWebSocketMessage = (message: string): BackendGameWebSocketMessage => {
-  const data = JSON.parse(message)
-
-  return data as BackendGameWebSocketMessage
 }
 
 export type ClientGameWebSocketMessage = {
@@ -43,8 +39,7 @@ export type ClientGameWebSocketMessage = {
   type: 'join_game'
 }
 
-export const parseClientGameWebSocketMessage = (message: string): ClientGameWebSocketMessage => {
-  const data = JSON.parse(message)
-
-  return data as ClientGameWebSocketMessage
+export type WebSocketData = {
+  identity: string
+  gameId: string
 }
