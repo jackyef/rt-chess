@@ -47,7 +47,7 @@ const server = Bun.serve({
         })
       );
 
-      const identity = cookieMap["rt-chess-identity"] || "Unknown spectator";
+      const identity = decodeURIComponent(cookieMap["rt-chess-identity"] || "Unknown spectator");
 
       const gameId = req.url.split("gameId=")[1];
       if (!gameId) {

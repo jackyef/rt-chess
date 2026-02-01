@@ -26,6 +26,8 @@ export const handleWebSocketOpen = (ws: GameWebSocket) => {
 export const handleWebSocketMessage = (ws: GameWebSocket, message: string, server: GameServer) => {
   const clientMessage = parseClientGameWebSocketMessage(message)
 
+  console.log('[WebSocket] Received message:', clientMessage)
+
   if (clientMessage.type === 'make_move') {
     handleMakeMove(ws, clientMessage.payload.san, server)
   } else if (clientMessage.type === 'join_game') {
@@ -43,6 +45,8 @@ export const handleWebSocketClose = (ws: GameWebSocket) => {
 
 const handleMakeMove = (ws: GameWebSocket, san: string, server: GameServer) => {
   const game = gamesStore.getGame(ws.data.gameId)
+  console.log('[WebSocket] Handling make move for game:', ws.data.gameId, 'SAN:', san)
+  console.log('[WebSocket] game ID:', game?.id)
   if (!game) return
 
   const chessInstance = game.chessInstance
@@ -51,6 +55,7 @@ const handleMakeMove = (ws: GameWebSocket, san: string, server: GameServer) => {
   const currentPlayer = headers[turn]
 
   if (currentPlayer !== ws.data.identity) {
+    console.log('[WebSocket] Not this player\'s turn:', ws.data.identity, 'Current player:', currentPlayer)
     // Not this player's turn
     return
   }
