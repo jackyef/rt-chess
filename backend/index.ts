@@ -13,7 +13,7 @@
  * 9. Finished games are removed from memory, but persisted into the filesystem.
  */
 
-import type { WebSocketData } from './types'
+import type { WebSocketData } from './types/websocket.types'
 import { identityRoutes } from './routes/identity.routes'
 import { getGameByIdHandler, createGameHandler, joinGameHandler } from './routes/game.routes'
 import { handleWebSocketOpen, handleWebSocketMessage, handleWebSocketClose } from './handlers/websocket.handler'
@@ -58,7 +58,17 @@ const server = Bun.serve({
       return success ? undefined : new Response("WebSocket upgrade error", { status: 400 });
     }
 
-    return Response.json({ message: "Not found" }, { status: 404 });
+
+    /** These are only needed for production.
+     *  In development, we hit the vite dev server and api calls are proxied to bun.
+     *  In production, bun is our only server, serving both apis and frontend assets.
+     */
+    if (url.pathname.startsWith('/assets')) {
+      return new Response(Bun.file(`./dist/frontend${url.pathname}`));
+    }
+
+    // Fallback to the SPA entrypoint
+    return new Response(Bun.file('./dist/frontend/index.html'));
   },
 
   websocket: {
