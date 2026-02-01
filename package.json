@@ -8,7 +8,7 @@
     "dev:backend": "bun --watch backend/index.ts",
     "build": "run-p type-check \"build-only {@}\" --",
     "build:backend": "bun build --target=bun --production --outdir=dist backend/index.ts",
-    "start": "bun run dist/backend/index.js",
+    "start": "bun run dist/index.js",
     "preview": "vite preview",
     "test:unit": "vitest",
     "test:e2e": "playwright test",
