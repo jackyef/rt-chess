@@ -4,6 +4,10 @@ import type { Game, GameEndedReason, GameOptions } from '../types/game.types'
 /**
  * Keep track of all ongoing games in memory.
  * Each game is identified by a unique game ID.
+ *
+ * This will eventually cause our server to run out of memory. It's fine because this is just a mini project for learning.
+ * In actual real-world application, using redis is preferrable for better scalability.
+ * Once the game is finished, we can remove the data from redis and persist it into a DB (Postgre, etc)
  */
 export const store: Map<string, Game> = new Map()
 
