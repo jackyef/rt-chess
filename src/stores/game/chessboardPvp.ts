@@ -305,6 +305,7 @@ export const useChessBoardPvpStore = defineStore('chessboardPvp', () => {
     remainingTime,
     initGameState: getLatestGameState,
     connectToWebSocket,
+    disconnectWebSocket: disconnect,
     setPgn,
     getPieceForSquare,
     getSquareColor,

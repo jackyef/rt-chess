@@ -2,7 +2,7 @@
 import ChessBoardPvp from '@/components/ChessBoard/ChessBoardPvp.vue'
 import { useChessBoardPvpStore } from '@/stores/game/chessboardPvp'
 import { storeToRefs } from 'pinia'
-import { computed, watch } from 'vue'
+import { computed, onUnmounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 
 const router = useRouter()
@@ -34,6 +34,10 @@ watch(
   },
   { immediate: true },
 )
+
+onUnmounted(() => {
+  chessboardPvpStore.disconnectWebSocket()
+})
 
 const shareUrl = computed(() => {
   return `${window.location.origin}/pvp/game/${gameId}`
