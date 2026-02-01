@@ -12,7 +12,8 @@ export interface WebSocketGameClient {
 }
 
 export const createWebSocketGameClient = (gameId: string): WebSocketGameClient => {
-  const wsUrl = `ws://${window.location.host}/api/ws/game?gameId=${gameId}`
+  const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws'
+  const wsUrl = `${protocol}://${window.location.host}/api/ws/game?gameId=${gameId}`
   const socket = new WebSocket(wsUrl)
 
   const subscribers = new Set<Subscriber>()
