@@ -1,5 +1,5 @@
 import type { ServerWebSocket, Server } from 'bun'
-import type { WebSocketData } from '../types'
+import type { WebSocketData } from '../types/websocket.types'
 import type { Game } from '../types/game.types'
 import * as gamesStore from '../stores/gameStores'
 import { getGameEndedReason } from '../services/game.service'
@@ -9,7 +9,8 @@ import {
   createMoveMadeMessage,
   createIllegalMoveMessage,
   createGameEndedMessage,
-  createPlayerJoinedMessage
+  createPlayerJoinedMessage,
+  createUpdateRemainingTimeMessage
 } from '../utils/websocket.utils'
 
 type GameWebSocket = ServerWebSocket<WebSocketData>
@@ -73,16 +74,16 @@ const handleMakeMove = (ws: GameWebSocket, san: string, server: GameServer) => {
 
     game.lastMoveAt = currentTime
 
-    const backendMessage = createMoveMadeMessage(
+    ws.publish(`game-${ws.data.gameId}`, JSON.stringify(createMoveMadeMessage(
       san,
+    )))
+    server.publish(`game-${ws.data.gameId}`, JSON.stringify(createUpdateRemainingTimeMessage(
       game.lastMoveAt,
       {
-        white: game.remainingTime.white || 0,
-        black: game.remainingTime.black || 0
+        white: game.remainingTime.white!,
+        black: game.remainingTime.black!,
       }
-    )
-
-    ws.publish(`game-${ws.data.gameId}`, JSON.stringify(backendMessage))
+    )))
   } else {
     const backendMessage = createIllegalMoveMessage(san)
     ws.send(JSON.stringify(backendMessage))

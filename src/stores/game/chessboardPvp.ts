@@ -22,6 +22,7 @@ export const useChessBoardPvpStore = defineStore('chessboardPvp', () => {
   const lastMoveAt = ref<number>(0)
   const identityStore = useIdentityStore()
   const wsClient = ref<WebSocketGameClient | null>(null)
+  const wsClientState = ref<'connected' | 'disconnected'>('disconnected')
   const connectedGameId = ref<string | null>(null)
   const { identity } = storeToRefs(identityStore)
 
@@ -54,6 +55,7 @@ export const useChessBoardPvpStore = defineStore('chessboardPvp', () => {
   function connectToWebSocket(gameId: string) {
     disconnect()
     wsClient.value = createWebSocketGameClient(gameId)
+    wsClientState.value = 'connected'
     connectedGameId.value = gameId
 
     wsClient.value.subscribe((message) => {
@@ -64,13 +66,18 @@ export const useChessBoardPvpStore = defineStore('chessboardPvp', () => {
             lastMoveSquares.value = [move.from, move.to]
           }
           setPgn(chess.pgn())
-          remainingTime.value = message.payload.remainingTime
-          lastMoveAt.value = message.payload.lastMoveAt
         } catch {
           // If an error happens, that means the move might be invalid.
           // We ask for fresh game state and start over.
           getLatestGameState()
         }
+      } else if (message.type === 'update_remaining_time') {
+        lastMoveAt.value = message.payload.lastMoveAt
+        remainingTime.value = {
+          white: message.payload.remainingTime.white,
+          black: message.payload.remainingTime.black,
+        }
+
       } else if (message.type === 'player_joined') {
         getLatestGameState()
       } else if (message.type === 'game_ended') {
@@ -78,6 +85,10 @@ export const useChessBoardPvpStore = defineStore('chessboardPvp', () => {
         gameEndedReason.value = message.payload.reason
         winner.value = message.payload.winner
       }
+    })
+
+    wsClient.value.onDisconnection(() => {
+      wsClientState.value = 'disconnected'
     })
   }
 
@@ -273,15 +284,16 @@ export const useChessBoardPvpStore = defineStore('chessboardPvp', () => {
       })
       await getLatestGameState()
 
-      // Reconnect so that the websocket connection recognize the new identity in cookie.
+      // Disconnect and reconnect so that the websocket connection pick up the new identity in cookie.
       disconnect()
-      connectToWebSocket(currentGameId!)
+      connectToWebSocket(currentGameId)
     } catch (error) {
       console.error('Failed to join game:', error)
     }
   }
 
   return {
+    wsClientState,
     pgn,
     highlightedSquares,
     lastMoveSquares,

@@ -21,6 +21,20 @@ watch(
   { immediate: true },
 )
 
+watch(
+  () => chessboardPvpStore.wsClientState,
+  (newVal) => {
+    if (newVal === 'disconnected') {
+      // Try reconnecting
+      setTimeout(() => {
+        chessboardPvpStore.connectToWebSocket(router.currentRoute.value.params.id as string)
+        chessboardPvpStore.initGameState()
+      }, 1000) // Ideally we have some exponential backoff here. For this demo, it's fine.
+    }
+  },
+  { immediate: true },
+)
+
 const shareUrl = computed(() => {
   return `${window.location.origin}/pvp/game/${gameId}`
 })

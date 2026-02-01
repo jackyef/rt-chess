@@ -1,4 +1,5 @@
-import type { BackendGameWebSocketMessage, ClientGameWebSocketMessage, GameEndedReason } from '../types'
+import type { BackendGameWebSocketMessage, ClientGameWebSocketMessage } from '../types/websocket.types'
+import type { GameEndedReason } from '../types/game.types'
 
 export const parseClientGameWebSocketMessage = (message: string): ClientGameWebSocketMessage => {
   const data = JSON.parse(message)
@@ -12,11 +13,20 @@ export const createInfoMessage = (message: string): BackendGameWebSocketMessage 
 
 export const createMoveMadeMessage = (
   san: string,
+): BackendGameWebSocketMessage => ({
+  type: 'move_made',
+  payload: { san },
+})
+
+export const createUpdateRemainingTimeMessage = (
   lastMoveAt: number,
   remainingTime: { white: number; black: number },
 ): BackendGameWebSocketMessage => ({
-  type: 'move_made',
-  payload: { san, lastMoveAt, remainingTime },
+  type: 'update_remaining_time',
+  payload: {
+    lastMoveAt,
+    remainingTime,
+  },
 })
 
 export const createIllegalMoveMessage = (san: string): BackendGameWebSocketMessage => ({

@@ -9,10 +9,14 @@ export type BackendGameWebSocketMessage = {
   type: 'move_made'
   payload: {
     san: string
+  }
+} | {
+  type: 'update_remaining_time'
+  payload: {
     lastMoveAt: number
     remainingTime: {
-      white: number,
-      black: number,
+      white: number
+      black: number
     }
   }
 } | {
