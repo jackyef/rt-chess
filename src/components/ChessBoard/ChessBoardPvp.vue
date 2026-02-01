@@ -114,6 +114,7 @@ const canJoinGame = computed(() => {
   flex-direction: row;
   gap: 16px;
   max-width: 100%;
+  margin-bottom: 16px;
 }
 
 .container {
