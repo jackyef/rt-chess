@@ -3,7 +3,7 @@
  * It serves as a bridge between Vue components and the backend game client.
  *
  */
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { defineStore, storeToRefs } from 'pinia'
 import { Chess, type Move, SQUARES, type Square } from 'chess.js'
 import type { ColorAndPieceSymbol } from '@/components/ChessBoard/constants'
@@ -14,6 +14,7 @@ import { getGameState, joinMatch } from '@/api/game.api'
 export const useChessBoardPvpStore = defineStore('chessboardPvp', () => {
   const chess = new Chess()
   const pgn = ref<string>('')
+  const fen = ref<string>('')
   const remainingTime = ref<{ white: number; black: number }>({ white: 0, black: 0 })
   const hasStarted = ref<boolean>(false)
   const hasEnded = ref<boolean>(false)
@@ -25,6 +26,10 @@ export const useChessBoardPvpStore = defineStore('chessboardPvp', () => {
   const wsClientState = ref<'connected' | 'disconnected'>('disconnected')
   const connectedGameId = ref<string | null>(null)
   const { identity } = storeToRefs(identityStore)
+
+  watch(pgn, () => {
+    fen.value = chess.fen()
+  }, { immediate: true })
 
   async function getLatestGameState() {
     if (!connectedGameId.value) return
@@ -295,6 +300,7 @@ export const useChessBoardPvpStore = defineStore('chessboardPvp', () => {
   return {
     wsClientState,
     pgn,
+    fen,
     highlightedSquares,
     lastMoveSquares,
     pendingPromotion,

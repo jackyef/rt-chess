@@ -7,6 +7,7 @@ import PlayerInfo from './PlayerInfo.vue'
 import GameStatus from './GameStatus.vue'
 import JoinGame from './JoinGame.vue'
 import PromotionDialog from './PromotionDialog.vue'
+import EvalBar from '../EvalBar/EvalBar.vue'
 
 const chessBoardStore = useChessBoardPvpStore()
 
@@ -69,74 +70,67 @@ const canJoinGame = computed(() => {
 <template>
   <JoinGame :canJoin="canJoinGame" :onJoin="chessBoardStore.joinGame" />
 
-  <div class="container">
-    <PlayerInfo
-      :name="topPlayer.name"
-      :color="topPlayer.color"
-      :lastMoveAt="chessBoardStore.lastMoveAt"
-      :remainingTime="
-        chessBoardStore.remainingTime[topPlayer.color === 'Black' ? 'black' : 'white']
-      "
-      :isPaused="
-        !chessBoardStore.hasStarted ||
+  <div class="eval-bar-and-chessboard">
+    <EvalBar :fen="chessBoardStore.fen" :topPlayer="topPlayer.color"/>
+
+    <div class="container">
+      <PlayerInfo :name="topPlayer.name" :color="topPlayer.color" :lastMoveAt="chessBoardStore.lastMoveAt"
+        :remainingTime="chessBoardStore.remainingTime[topPlayer.color === 'Black' ? 'black' : 'white']
+          " :isPaused="!chessBoardStore.hasStarted ||
         chessBoardStore.hasEnded ||
         chessBoardStore.board.turn.toLowerCase() !== topPlayer.color.charAt(0).toLowerCase()
-      "
-    />
+        " />
 
-    <div class="chessboard">
-      <template v-for="square in squares" :key="square">
-        <ChessSquare
-          :square="square"
-          :piece="chessBoardStore.getPieceForSquare(square)"
-          :onClick="() => chessBoardStore.handleSquareClick(square)"
-          :onDrop="(fromSquare, toSquare) => chessBoardStore.handleDrop(fromSquare, toSquare)"
-          :isHighlighted="chessBoardStore.highlightedSquares.includes(square)"
-          :isLastMove="chessBoardStore.lastMoveSquares.includes(square)"
-          :color="chessBoardStore.getSquareColor(square)"
-        />
-      </template>
-    </div>
+      <div class="chessboard">
+        <template v-for="square in squares" :key="square">
+          <ChessSquare :square="square" :piece="chessBoardStore.getPieceForSquare(square)"
+            :onClick="() => chessBoardStore.handleSquareClick(square)"
+            :onDrop="(fromSquare, toSquare) => chessBoardStore.handleDrop(fromSquare, toSquare)"
+            :isHighlighted="chessBoardStore.highlightedSquares.includes(square)"
+            :isLastMove="chessBoardStore.lastMoveSquares.includes(square)"
+            :color="chessBoardStore.getSquareColor(square)" />
+        </template>
+      </div>
 
-    <PlayerInfo
-      :name="bottomPlayer.name"
-      :color="bottomPlayer.color"
-      :lastMoveAt="chessBoardStore.lastMoveAt"
-      :remainingTime="
-        chessBoardStore.remainingTime[bottomPlayer.color === 'Black' ? 'black' : 'white']
-      "
-      :isPaused="
-        !chessBoardStore.hasStarted ||
+      <PlayerInfo :name="bottomPlayer.name" :color="bottomPlayer.color" :lastMoveAt="chessBoardStore.lastMoveAt"
+        :remainingTime="chessBoardStore.remainingTime[bottomPlayer.color === 'Black' ? 'black' : 'white']
+          " :isPaused="!chessBoardStore.hasStarted ||
         chessBoardStore.hasEnded ||
         chessBoardStore.board.turn.toLowerCase() !== bottomPlayer.color.charAt(0).toLowerCase()
-      "
-    />
+        " />
+    </div>
   </div>
 
   <GameStatus :gameState="chessBoardStore.board.gameState" />
   <button @click="toggleBoardFlip">Flip board</button>
 
-  <PromotionDialog
-    :isOpen="!!chessBoardStore.pendingPromotion"
-    :color="chessBoardStore.board.turn"
-    :onSelect="chessBoardStore.completePromotion"
-    :onCancel="chessBoardStore.cancelPromotion"
-  />
+  <PromotionDialog :isOpen="!!chessBoardStore.pendingPromotion" :color="chessBoardStore.board.turn"
+    :onSelect="chessBoardStore.completePromotion" :onCancel="chessBoardStore.cancelPromotion" />
 </template>
 
 <style lang="css" scoped>
+.eval-bar-and-chessboard {
+  display: flex;
+  flex-direction: row;
+  gap: 16px;
+  max-width: 100%;
+}
+
 .container {
   display: flex;
   flex-direction: column;
-  max-width: 100%;
-  --borderColor: #333;
+  max-width: calc(100% - 32px);
+  flex-grow: 1;
   --borderRadius: 8px;
+  border-radius: var(--borderRadius);
+  box-shadow: 0 0 4px rgba(0, 0, 0, 0.3);
 }
 
 .playerInfo:first-of-type {
   border-radius: var(--borderRadius) var(--borderRadius) 0 0;
   border-bottom-width: 0px;
 }
+
 .playerInfo:last-of-type {
   border-radius: 0 0 var(--borderRadius) var(--borderRadius);
   border-top-width: 0px;
@@ -149,7 +143,6 @@ const canJoinGame = computed(() => {
   width: 800px;
   max-width: 100%;
   aspect-ratio: 1 / 1;
-  border: 1px solid var(--borderColor);
   max-width: 100%;
 }
 </style>

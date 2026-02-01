@@ -15,5 +15,7 @@ defineProps<Props>()
   margin-top: 16px;
   font-size: 1.2rem;
   font-weight: bold;
+  text-align: center;
+  margin: 0 auto;
 }
 </style>

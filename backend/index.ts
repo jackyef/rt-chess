@@ -67,8 +67,22 @@ const server = Bun.serve({
       return new Response(Bun.file(`./dist/frontend${url.pathname}`));
     }
 
+    if (url.pathname.startsWith('/engine')) {
+      return new Response(Bun.file(`./public${url.pathname}`), {
+        headers: {
+          // Required for WASM files to be loaded properly
+          'Cross-Origin-Embedder-Policy': 'require-corp',
+        }
+      });
+    }
+
     // Fallback to the SPA entrypoint
-    return new Response(Bun.file('./dist/frontend/index.html'));
+    return new Response(Bun.file('./dist/frontend/index.html'), {
+      headers: {
+        'Cross-Origin-Embedder-Policy': 'require-corp',
+        'Cross-Origin-Opener-Policy': 'same-origin',
+      }
+    });
   },
 
   websocket: {

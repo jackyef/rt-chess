@@ -19,6 +19,10 @@ export default defineConfig({
     },
   },
   server: {
+    headers: {
+      'Cross-Origin-Embedder-Policy': 'require-corp',
+      'Cross-Origin-Opener-Policy': 'same-origin',
+    },
     proxy: {
       '/api/ws/game': {
         target: 'ws://localhost:3000/api/ws/game',
