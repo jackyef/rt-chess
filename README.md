@@ -1,33 +1,25 @@
 # rt-chess
 
-## Todos
+A small real-time online chess app built with Vue and Bun, primarily as a learning project.
 
-- [ ] 3+2 time control
-- [ ] Eval bar, stockfish wasm
-- [ ] More delightful feedbacks (sound effect, transition, etc)
+## Features
 
-This template should help get you started developing with Vue 3 in Vite.
+- Vue frontend with Pinia for state management
+- Bun backend with a vanilla WebSocket server
+- Server-authoritative game state
+- Client-side chess engine for local interactions
+- Evaluation bar powered by Stockfish WASM  
+  (https://github.com/nmrugg/stockfish.js)
 
-## Recommended IDE Setup
+## Scope & Limitations
 
-[VS Code](https://code.visualstudio.com/) + [Vue (Official)](https://marketplace.visualstudio.com/items?itemName=Vue.volar) (and disable Vetur).
+This project is intentionally **not production-grade**. Some things were deliberately kept minimal or omitted to keep the focus on learning:
 
-## Recommended Browser Setup
+- No authentication, players can set arbitrary identities
+- No persistence, games are stored in memory and reset on server restart
+- Minimal UI, functional over polished
 
-- Chromium-based browsers (Chrome, Edge, Brave, etc.):
-  - [Vue.js devtools](https://chromewebstore.google.com/detail/vuejs-devtools/nhdogjmejiglipccpnnnanhbledajbpd)
-  - [Turn on Custom Object Formatter in Chrome DevTools](http://bit.ly/object-formatters)
-- Firefox:
-  - [Vue.js devtools](https://addons.mozilla.org/en-US/firefox/addon/vue-js-devtools/)
-  - [Turn on Custom Object Formatter in Firefox DevTools](https://fxdx.dev/firefox-devtools-custom-object-formatters/)
-
-## Type Support for `.vue` Imports in TS
-
-TypeScript cannot handle type information for `.vue` imports by default, so we replace the `tsc` CLI with `vue-tsc` for type checking. In editors, we need [Volar](https://marketplace.visualstudio.com/items?itemName=Vue.volar) to make the TypeScript language service aware of `.vue` types.
-
-## Customize configuration
-
-See [Vite Configuration Reference](https://vite.dev/config/).
+The goal was to better understand architecture, reactivity, and real-time communication rather than to build a fully featured product.
 
 ## Project Setup
 
@@ -35,45 +27,24 @@ See [Vite Configuration Reference](https://vite.dev/config/).
 bun install
 ```
 
-### Compile and Hot-Reload for Development
+### Development
 
 ```sh
 bun dev
+bun dev:backend
 ```
+
+App is available on `localhost:5173`
 
 ### Type-Check, Compile and Minify for Production
 
 ```sh
 bun run build
+bun run build:backend
 ```
 
-### Run Unit Tests with [Vitest](https://vitest.dev/)
+### Running on production
 
 ```sh
-bun test:unit
-```
-
-### Run End-to-End Tests with [Playwright](https://playwright.dev)
-
-```sh
-# Install browsers for the first run
-npx playwright install
-
-# When testing on CI, must build the project first
-bun run build
-
-# Runs the end-to-end tests
-bun test:e2e
-# Runs the tests only on Chromium
-bun test:e2e --project=chromium
-# Runs the tests of a specific file
-bun test:e2e tests/example.spec.ts
-# Runs the tests in debug mode
-bun test:e2e --debug
-```
-
-### Lint with [ESLint](https://eslint.org/)
-
-```sh
-bun lint
+bun run start
 ```
