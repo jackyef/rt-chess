@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { createStockfishClient, type StockfishEvaluation } from '@/api/stockfish.api';
-import { computed, onUnmounted, onWatcherCleanup, ref, watch } from 'vue';
+import { createStockfishClient, type StockfishEvaluation } from '@/api/stockfish.api'
+import { computed, onUnmounted, onWatcherCleanup, ref, watch } from 'vue'
 
 const { fen, topPlayer } = defineProps<{
   fen: string
@@ -10,32 +10,36 @@ const { fen, topPlayer } = defineProps<{
 const stockfishClient = createStockfishClient()
 const evaluation = ref<StockfishEvaluation>({
   type: 'cp',
-  value: 0
+  value: 0,
 })
 
-watch(() => fen, () => {
-  let timeout: ReturnType<typeof setTimeout> | null = null
+watch(
+  () => fen,
+  () => {
+    let timeout: ReturnType<typeof setTimeout> | null = null
 
-  const unsubscribe = stockfishClient.subscribe(newEvaluation => {
-    if (timeout) {
-      clearTimeout(timeout)
-      timeout = null
-    }
+    const unsubscribe = stockfishClient.subscribe((newEvaluation) => {
+      if (timeout) {
+        clearTimeout(timeout)
+        timeout = null
+      }
 
-    timeout = setTimeout(() => {
-      evaluation.value = newEvaluation
-    }, 300)
-  })
+      timeout = setTimeout(() => {
+        evaluation.value = newEvaluation
+      }, 300)
+    })
 
-  stockfishClient.evaluateFen(fen)
+    stockfishClient.evaluateFen(fen)
 
-  onWatcherCleanup(() => {
-    unsubscribe()
-    if (timeout) {
-      clearTimeout(timeout)
-    }
-  })
-}, { immediate: true })
+    onWatcherCleanup(() => {
+      unsubscribe()
+      if (timeout) {
+        clearTimeout(timeout)
+      }
+    })
+  },
+  { immediate: true },
+)
 
 onUnmounted(() => {
   stockfishClient.close()
@@ -62,15 +66,15 @@ const whiteBarHeightPercentage = () => {
   // 100 - 50 = 50
   // 50 / 2 = 25
   // 100 - 25 = 75% height for white bar
-  const barDiff = ((maxEval - clampedEval) / 1000 * 100)
-  const winningBarPercentage = 100 - (barDiff / 2)
+  const barDiff = ((maxEval - clampedEval) / 1000) * 100
+  const winningBarPercentage = 100 - barDiff / 2
 
   return isWhiteAdvantage ? winningBarPercentage : 100 - winningBarPercentage
 }
 
 const shownValuation = computed(() => {
   if (evaluation.value.type === 'mate') {
-    return `M${evaluation.value.value}`
+    return `M${Math.abs(evaluation.value.value)}`
   } else {
     const sign = evaluation.value.value > 0 ? '+' : ''
     const centipawns = evaluation.value.value
@@ -78,16 +82,15 @@ const shownValuation = computed(() => {
     return `${sign}${pawns}`
   }
 })
-
 </script>
 
 <template>
   <div :class="`bar ${shouldFlipBar ? 'flipped' : ''}`">
-    <div class="black" :style="{ height: (100 - whiteBarHeightPercentage()) + '%' }"></div>
-    <div class="white" :style="{ height: (whiteBarHeightPercentage()) + '%' }"></div>
+    <div class="black" :style="{ height: 100 - whiteBarHeightPercentage() + '%' }"></div>
+    <div class="white" :style="{ height: whiteBarHeightPercentage() + '%' }"></div>
   </div>
 
-  <div class="popover">{{  shownValuation  }}</div>
+  <div class="popover">{{ shownValuation }}</div>
 </template>
 
 <style lang="css" scoped>
@@ -122,7 +125,8 @@ const shownValuation = computed(() => {
   flex-direction: column-reverse;
 }
 
-.white, .black {
+.white,
+.black {
   transition: height 0.5s ease;
 }
 
